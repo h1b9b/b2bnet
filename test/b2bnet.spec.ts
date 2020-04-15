@@ -41,13 +41,11 @@ describe('B2BNet', () => {
 
     beforeEach(() => {
       b2bnetServer = new B2BNet();
-      b2bnetClient = new B2BNet(b2bnetServer.address(), {
-        webtorrentOpts: { torrentPort: 39758 },
-      });
+      b2bnetClient = new B2BNet(b2bnetServer.address());
 
       // connect the two clients together
       b2bnetServer.webTorrentService.on('infoHash', () => {
-        b2bnetServer.webTorrentService.addPeer('127.0.0.1:39758');
+        b2bnetServer.webTorrentService.addPeer(b2bnetClient.getPublicAddress());
       });
     });
 
@@ -125,12 +123,8 @@ describe('B2BNet', () => {
 
     beforeEach((done) => {
       b2bnetServer = new B2BNet(null);
-      b2bnetClient1 = new B2BNet(b2bnetServer.address(), {
-        webtorrentOpts: { torrentPort: 39758 },
-      });
-      b2bnetClient2 = new B2BNet(b2bnetServer.address(), {
-        webtorrentOpts: { torrentPort: 39759 },
-      });
+      b2bnetClient1 = new B2BNet(b2bnetServer.address());
+      b2bnetClient2 = new B2BNet(b2bnetServer.address());
 
       b2bnetClient2.on('server', () => {
         done();
@@ -138,11 +132,17 @@ describe('B2BNet', () => {
 
       // connect the two clients together
       b2bnetServer.webTorrentService.on('infoHash', () => {
-        b2bnetServer.webTorrentService.addPeer('127.0.0.1:39758');
-        b2bnetServer.webTorrentService.addPeer('127.0.0.1:39759');
+        b2bnetServer.webTorrentService.addPeer(
+          b2bnetClient1.getPublicAddress()
+        );
+        b2bnetServer.webTorrentService.addPeer(
+          b2bnetClient2.getPublicAddress()
+        );
         b2bnetServer.once('seen', () => {
           setTimeout(() => {
-            b2bnetClient1.webTorrentService.addPeer('127.0.0.1:39759');
+            b2bnetClient1.webTorrentService.addPeer(
+              b2bnetClient2.getPublicAddress()
+            );
           }, 100);
         });
       });

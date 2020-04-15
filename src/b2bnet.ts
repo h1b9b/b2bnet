@@ -233,4 +233,8 @@ export default class B2BNet extends EventEmitter {
     const peersCount = this.webTorrentService.connections();
     this.emit('wireseen', peersCount);
   }
+
+  getPublicAddress(): string {
+    return this.webTorrentService.getAddress();
+  }
 }

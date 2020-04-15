@@ -1,6 +1,7 @@
 import WebTorrent from 'webtorrent';
 import BitTorrent from 'bittorrent-protocol';
 import SimplePeer from 'simple-peer';
+import { AddressInfo } from 'net';
 import { EventEmitter } from 'events';
 import nacl from 'tweetnacl';
 import { EXT } from './extension';
@@ -10,17 +11,21 @@ interface TorrentInterface extends WebTorrent.Torrent {
   wires: BitTorrent.Wire[];
 }
 
+export interface WebTorrentInterface extends WebTorrent.Instance {
+  address(): AddressInfo;
+}
+
 export interface WebTorrentOptions {
   tracker?: {};
   announce?: string[];
   torrentOpts?: {};
   iceServers?: boolean;
-  webtorrent?: WebTorrent.Instance;
+  webtorrent?: WebTorrentInterface;
   webtorrentOpts?: { [key: string]: any };
 }
 
 export default class WebTorrentService extends EventEmitter {
-  webtorrent: WebTorrent.Instance;
+  webtorrent: WebTorrentInterface;
   torrent: TorrentInterface;
   lastPeersCount: number = 0;
   extensions: string[] = [];
@@ -38,7 +43,8 @@ export default class WebTorrentService extends EventEmitter {
       'wss://tracker.btorrent.xyz',
     ]),
       (this.webtorrent =
-        options.webtorrent || new WebTorrent(this.buildOptions(options)));
+        options.webtorrent ||
+        (new WebTorrent(this.buildOptions(options)) as WebTorrentInterface));
     this.torrent = this.initializeTorrent(identifier, options);
     this.torrent.on('wire', this.attachExtensions(extensions));
     this.torrent.on('infoHash', () => {
@@ -141,5 +147,10 @@ export default class WebTorrentService extends EventEmitter {
 
   addPeer(peer: string | SimplePeer.Instance): boolean {
     return this.torrent.addPeer(peer);
+  }
+
+  getAddress(): string {
+    const addressInfo = this.webtorrent.address();
+    return `${addressInfo.address}:${addressInfo.port}`;
   }
 }
