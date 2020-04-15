@@ -18,11 +18,10 @@ export default [
 			name: 'b2bnet',
 			file: pkg.browser,
 			format: 'umd',
-			sourcemap: true,
 			globals: {
-				bs58:'bs58',
+				bs58: 'bs58',
 				'bs58check-ts': 'bs58check',
-				tweetnacl:'nacl',
+				tweetnacl: 'nacl',
 				ripemd160: 'ripemd160',
 				debug: 'debug',
 				bencode: 'bencode',
@@ -57,8 +56,8 @@ export default [
 			terser()
 		],
 		output: [
-			{ file: pkg.main, format: 'cjs', sourcemap: true },
-			{ file: pkg.module, format: 'es', sourcemap: true }
+			{ file: pkg.main, format: 'cjs' },
+			{ file: pkg.module, format: 'es' }
 		]
 	}
 ];
