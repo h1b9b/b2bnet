@@ -1,1 +1,3 @@
-# B2BNet Typescript
+# B2BNet
+
+A browser to browser networking library
