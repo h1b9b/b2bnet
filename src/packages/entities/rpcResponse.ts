@@ -1,5 +1,5 @@
-import Package from "./abstract";
-import PacketType from "../types";
+import Package from './abstract';
+import PacketType from '../types';
 
 export default class RpcResponsePackage extends Package {
   result: string;
@@ -10,7 +10,7 @@ export default class RpcResponsePackage extends Package {
     publicKey: string,
     encryptedKey: string,
     responseNonce: Uint8Array,
-    result: string = '',
+    result: string = ''
   ) {
     super(PacketType.RPCRESPONSE, identifier, publicKey, encryptedKey);
     this.result = result;
@@ -23,11 +23,11 @@ export default class RpcResponsePackage extends Package {
       packet.pk.toString(),
       packet.ek.toString(),
       packet.rn,
-      packet.rr.toString(),
-    )
+      packet.rr.toString()
+    );
   }
 
-  toObject(): Object {
+  toObject(): object {
     const parentObject = super.toObject();
     return {
       ...parentObject,

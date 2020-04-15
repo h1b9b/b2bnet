@@ -6,7 +6,7 @@ import debug from 'debug';
 import { EventEmitter } from 'events';
 import buildExtention from './webtorrent/extension';
 import MessageService from './message/service';
-import Package from './packages/entities/abstract';;
+import Package from './packages/entities/abstract';
 import PackageHandler from './packages/handler';
 import PackageService from './packages/service';
 import PacketType from './packages/types';
@@ -15,14 +15,14 @@ import RpcService, { RpcApiFunction } from './rpc/service';
 import WebTorrentService, { WebTorrentOptions } from './webtorrent/service';
 
 const PEERTIMEOUT = 5 * 60 * 1000;
-const SEEDPREFIX = "490a";
-const ADDRESSPREFIX = "55";
+const SEEDPREFIX = '490a';
+const ADDRESSPREFIX = '55';
 const log = debug('B2BNet');
 
 interface B2BNetOptionsInterface extends WebTorrentOptions {
-  seed?: string,
-  timeout?: number,
-  heartbeat?: number,
+  seed?: string;
+  timeout?: number;
+  heartbeat?: number;
   keyPair?: nacl.SignKeyPair;
 }
 
@@ -41,33 +41,45 @@ export default class B2BNet extends EventEmitter {
   peerService: PeerService;
   messageService: MessageService;
 
-  constructor(identifier: any = null, { seed, timeout, heartbeat, keyPair, ...options }: B2BNetOptionsInterface = {}) {
+  constructor(
+    identifier: any = null,
+    {
+      seed,
+      timeout,
+      heartbeat,
+      keyPair,
+      ...options
+    }: B2BNetOptionsInterface = {}
+  ) {
     super();
     seed = seed || this.encodeseed(nacl.randomBytes(32));
     this.timeout = timeout || PEERTIMEOUT;
 
-    this.keyPair = keyPair || nacl.sign.keyPair.fromSeed(
-      Uint8Array.from(bs58check.decode(seed)).slice(2)
-    );
+    this.keyPair =
+      keyPair ||
+      nacl.sign.keyPair.fromSeed(
+        Uint8Array.from(bs58check.decode(seed)).slice(2)
+      );
     // ephemeral encryption key only used for this session
     const keyPairEncrypt = nacl.box.keyPair();
     this.publicKey = bs58.encode(Buffer.from(this.keyPair.publicKey));
     this.encryptedKey = bs58.encode(Buffer.from(keyPairEncrypt.publicKey));
     this.identifier = identifier || this.address();
 
-    log("address", this.address());
-    log("identifier", this.identifier);
-    log("public key", this.publicKey);
-    log("encryption key", this.encryptedKey);
+    log('address', this.address());
+    log('identifier', this.identifier);
+    log('public key', this.publicKey);
+    log('encryption key', this.encryptedKey);
 
     if (heartbeat) {
-      this.heartbeattimer = setInterval(
-        this.heartbeat.bind(this),
-        heartbeat
-      );
+      this.heartbeattimer = setInterval(this.heartbeat.bind(this), heartbeat);
     }
 
-    this.webTorrentService = new WebTorrentService(this.identifier, [buildExtention(this)], options);
+    this.webTorrentService = new WebTorrentService(
+      this.identifier,
+      [buildExtention(this)],
+      options
+    );
     this.packageHandler = new PackageHandler(this);
     this.packageService = new PackageService(
       this.identifier,
@@ -84,19 +96,19 @@ export default class B2BNet extends EventEmitter {
     this.peerService.on('seen', (address: string) => {
       this.ping();
       this.emit('seen', address);
-      if (address == this.identifier) {
+      if (address === this.identifier) {
         this.serveraddress = address;
-        this.emit("server", address);
+        this.emit('server', address);
       }
-    })
-    this.webTorrentService.on('connections', peersCount => {
+    });
+    this.webTorrentService.on('connections', (peersCount) => {
       this.emit('connections', peersCount);
     });
   }
 
   private encodeseed(material: ArrayBuffer | SharedArrayBuffer): string {
     return bs58check.encode(
-      Buffer.concat([Buffer.from(SEEDPREFIX, "hex"), Buffer.from(material)])
+      Buffer.concat([Buffer.from(SEEDPREFIX, 'hex'), Buffer.from(material)])
     );
   }
 
@@ -132,18 +144,17 @@ export default class B2BNet extends EventEmitter {
   address(publicKey: string | Uint8Array = this.keyPair.publicKey): string {
     let arrayKey: Uint8Array;
 
-    if (typeof (publicKey) == "string") {
+    if (typeof publicKey === 'string') {
       arrayKey = bs58.decode(publicKey);
     } else {
       arrayKey = publicKey;
     }
 
     return bs58check.encode(
-      Buffer.concat(
-        [
-          Buffer.from(ADDRESSPREFIX, "hex"),
-          new ripemd160().update(Buffer.from(nacl.hash(arrayKey))).digest()
-        ])
+      Buffer.concat([
+        Buffer.from(ADDRESSPREFIX, 'hex'),
+        new ripemd160().update(Buffer.from(nacl.hash(arrayKey))).digest(),
+      ])
     );
   }
 
@@ -192,7 +203,7 @@ export default class B2BNet extends EventEmitter {
     });
     this.sendPackage(messagePackage);
     this.emit('sent', address, message);
-  };
+  }
 
   broadcast(message: any) {
     const messagePackage = this.packageService.build({
@@ -201,7 +212,7 @@ export default class B2BNet extends EventEmitter {
     });
     this.sendPackage(messagePackage);
     this.emit('broadcast', message);
-  };
+  }
 
   handle(packet: Package) {
     this.packageHandler.exec(packet);
@@ -209,7 +220,9 @@ export default class B2BNet extends EventEmitter {
 
   destroy(callback?: (err: string | Error) => void) {
     clearInterval(this.heartbeattimer);
-    const disconnectPackage = this.packageService.build({ type: PacketType.DISCONNECT });
+    const disconnectPackage = this.packageService.build({
+      type: PacketType.DISCONNECT,
+    });
     this.sendPackage(disconnectPackage);
     this.webTorrentService.destroy(callback);
   }
@@ -218,6 +231,6 @@ export default class B2BNet extends EventEmitter {
 
   handshake() {
     const peersCount = this.webTorrentService.connections();
-    this.emit("wireseen", peersCount);
+    this.emit('wireseen', peersCount);
   }
 }

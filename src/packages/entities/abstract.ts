@@ -14,7 +14,7 @@ export default abstract class Package {
     publicKey: string,
     encryptedKey: string,
     nonce: Uint8Array = nacl.randomBytes(8),
-    timestamp: number = Date.now(),
+    timestamp: number = Date.now()
   ) {
     this.type = type;
     this.identifier = identifier;
@@ -24,7 +24,7 @@ export default abstract class Package {
     this.timestamp = timestamp;
   }
 
-  toObject(): Object {
+  toObject(): object {
     return {
       y: this.type,
       t: Date.now(),
@@ -36,7 +36,7 @@ export default abstract class Package {
   }
 
   isValid(identifier: string, timeout: number): boolean {
-    const checkid = this.identifier == identifier;
+    const checkid = this.identifier === identifier;
     const checktime = this.timestamp + timeout > Date.now();
 
     return checkid === true && checktime === true;

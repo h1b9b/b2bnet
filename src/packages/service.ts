@@ -13,7 +13,14 @@ export default class PackageService {
   packageFactory: PackageFactory;
   encryptPackage: EncryptPackage;
 
-  constructor(identifier: string, publicKey: string, encryptedKey: string, timeout: number, keyPairEncrypt: BoxKeyPair, secretKey: Uint8Array) {
+  constructor(
+    identifier: string,
+    publicKey: string,
+    encryptedKey: string,
+    timeout: number,
+    keyPairEncrypt: BoxKeyPair,
+    secretKey: Uint8Array
+  ) {
     this.identifier = identifier;
     this.publicKey = publicKey;
     this.encryptedKey = encryptedKey;
@@ -75,7 +82,7 @@ export default class PackageService {
       identifier: this.identifier,
       publicKey: this.publicKey,
       encryptedKey: this.encryptedKey,
-      ...options
+      ...options,
     });
   }
 }

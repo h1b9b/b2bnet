@@ -1,6 +1,5 @@
-
-import B2BNet from "../../b2bnet";
-import RpcCallPackage from "../entities/rpcCall";
+import B2BNet from '../../b2bnet';
+import RpcCallPackage from '../entities/rpcCall';
 
 function parseArguments(args: string) {
   try {
@@ -11,18 +10,18 @@ function parseArguments(args: string) {
   }
 }
 
-export default async function rpcCallHandler(b2bnet: B2BNet, packet: RpcCallPackage) {
+export default async function rpcCallHandler(
+  b2bnet: B2BNet,
+  packet: RpcCallPackage
+) {
   // log("rpc", b2bnet.identifier, packet);
   const nonce = packet.responseNonce;
   const call = packet.call;
   const args = parseArguments(packet.args);
   const address = b2bnet.address(packet.publicKey);
 
-
-  console.log('Call API', call);
   const result = await b2bnet.rpcService.callApi(address, call, args);
-  console.log('Result', result);
   const responsePackage = b2bnet.rpcService.buildResponsePackage(result, nonce);
   b2bnet.sendPackage(responsePackage, packet.publicKey);
-  b2bnet.emit("rpc", address, call, args, nonce);
+  b2bnet.emit('rpc', address, call, args, nonce);
 }

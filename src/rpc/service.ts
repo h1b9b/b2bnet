@@ -3,9 +3,7 @@ import { toHex } from '../util';
 import PacketType from '../packages/types';
 import PackageService from '../packages/service';
 
-export interface RpcApiFunction {
-  (address: string, arg: any): Promise<any>;
-}
+export type RpcApiFunction = (address: string, arg: any) => Promise<any>;
 
 export default class RpcService {
   api: { [key: string]: RpcApiFunction } = {};

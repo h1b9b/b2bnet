@@ -1,5 +1,5 @@
-import Package from "./abstract";
-import PacketType from "../types";
+import Package from './abstract';
+import PacketType from '../types';
 
 export default class MessagePackage extends Package {
   message: string;
@@ -8,7 +8,7 @@ export default class MessagePackage extends Package {
     identifier: string,
     publicKey: string,
     encryptedKey: string,
-    message: string = '',
+    message: string = ''
   ) {
     super(PacketType.MESSAGE, identifier, publicKey, encryptedKey);
     this.message = message;
@@ -20,10 +20,10 @@ export default class MessagePackage extends Package {
       packet.pk.toString(),
       packet.ek.toString(),
       packet.v.toString()
-    )
+    );
   }
 
-  toObject(): Object {
+  toObject(): object {
     const parentObject = super.toObject();
     return {
       ...parentObject,

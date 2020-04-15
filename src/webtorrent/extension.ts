@@ -1,21 +1,21 @@
 import { Wire, ExtensionConstructor } from 'bittorrent-protocol';
 import B2BNet from '../b2bnet';
 
-export const EXT = "bo_channel";
+export const EXT = 'bo_channel';
 
 interface WireInterface extends Wire {
   extendedHandshake: {
-    id: string,
-    pk: string,
-    ek: string,
-  }
+    id: string;
+    pk: string;
+    ek: string;
+  };
 }
 
 function buildOnExtendedHandshake(b2bnet: B2BNet, wire: WireInterface) {
   return (handshake: { [key: string]: any }): void => {
     b2bnet.handshake();
     b2bnet.sawPeer(handshake.pk.toString(), handshake.ek.toString());
-  }
+  };
 }
 
 function buildOnMessage(b2bnet: B2BNet) {
@@ -41,7 +41,7 @@ export default function buildExtention(b2bnet: B2BNet): ExtensionConstructor {
     onMessage?(buffer: Buffer): void;
 
     constructor(wire: Wire) {
-      const extendedWire: WireInterface = <WireInterface>wire;
+      const extendedWire: WireInterface = wire as WireInterface;
       extendedWire.extendedHandshake = {
         id: b2bnet.identifier,
         pk: b2bnet.publicKey,
@@ -56,4 +56,4 @@ export default function buildExtention(b2bnet: B2BNet): ExtensionConstructor {
   ExtendedExtension.prototype.name = EXT;
 
   return ExtendedExtension;
-};
+}

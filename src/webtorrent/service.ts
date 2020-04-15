@@ -7,7 +7,7 @@ import { EXT } from './extension';
 import { toHex } from '../util';
 
 interface TorrentInterface extends WebTorrent.Torrent {
-  wires: Array<BitTorrent.Wire>;
+  wires: BitTorrent.Wire[];
 }
 
 export interface WebTorrentOptions {
@@ -23,26 +23,33 @@ export default class WebTorrentService extends EventEmitter {
   webtorrent: WebTorrent.Instance;
   torrent: TorrentInterface;
   lastPeersCount: number = 0;
-  extensions: Array<string> = [];
+  extensions: string[] = [];
   infoHash?: string;
 
   constructor(
     identifier: string,
-    extensions: Array<BitTorrent.ExtensionConstructor> = [],
+    extensions: BitTorrent.ExtensionConstructor[] = [],
     options: WebTorrentOptions = {}
   ) {
     super();
-    options.announce = options.announce || ["wss://hub.bugout.link", "wss://tracker.openwebtorrent.com", "wss://tracker.btorrent.xyz"],
-
-      this.webtorrent = options.webtorrent || new WebTorrent(this.buildOptions(options));
+    (options.announce = options.announce || [
+      'wss://hub.bugout.link',
+      'wss://tracker.openwebtorrent.com',
+      'wss://tracker.btorrent.xyz',
+    ]),
+      (this.webtorrent =
+        options.webtorrent || new WebTorrent(this.buildOptions(options)));
     this.torrent = this.initializeTorrent(identifier, options);
-    this.torrent.on("wire", this.attachExtensions(extensions));
-    this.torrent.on("infoHash", () => {
+    this.torrent.on('wire', this.attachExtensions(extensions));
+    this.torrent.on('infoHash', () => {
       this.emit('infoHash');
     });
   }
 
-  private initializeTorrent(identifier: string, options: WebTorrentOptions): TorrentInterface {
+  private initializeTorrent(
+    identifier: string,
+    options: WebTorrentOptions
+  ): TorrentInterface {
     // if (typeof(File) == "object") {
     //   var blob = new File([this.identifier], this.identifier);
     // } else {
@@ -50,11 +57,11 @@ export default class WebTorrentService extends EventEmitter {
     // blob.name = this.identifier;
     // }
 
-    return <TorrentInterface>this.webtorrent.seed(
+    return this.webtorrent.seed(
       blob,
-      { "name": identifier, "announce": options.announce, ...options.torrentOpts },
+      { name: identifier, announce: options.announce, ...options.torrentOpts },
       this.initTorrent(identifier).bind(this)
-    );
+    ) as TorrentInterface;
   }
 
   private initTorrent(identifier: string) {
@@ -63,19 +70,16 @@ export default class WebTorrentService extends EventEmitter {
     return (torrent: any) => {
       // log("torrent", identifier, torrent);
       if (torrent.discovery.tracker) {
-        torrent.discovery.tracker.on(
-          "update",
-          function (update: any) {
-            self.emit("tracker", identifier, update);
-          }
-        );
+        torrent.discovery.tracker.on('update', (update: any) => {
+          self.emit('tracker', identifier, update);
+        });
       }
 
-      torrent.discovery.on("trackerAnnounce", function () {
-        self.emit("announce", identifier);
+      torrent.discovery.on('trackerAnnounce', () => {
+        self.emit('announce', identifier);
         self.connections();
       });
-    }
+    };
   }
 
   private buildOptions(options: WebTorrentOptions) {
@@ -83,9 +87,12 @@ export default class WebTorrentService extends EventEmitter {
     const webtorrentOpts = options.webtorrentOpts || {};
     if (tracker) {
       return {
-        tracker: { ...tracker, rtcConfig: iceServers ? { iceServers } : undefined },
-        ...webtorrentOpts
-      }
+        tracker: {
+          ...tracker,
+          rtcConfig: iceServers ? { iceServers } : undefined,
+        },
+        ...webtorrentOpts,
+      };
     }
 
     return webtorrentOpts;
@@ -100,21 +107,21 @@ export default class WebTorrentService extends EventEmitter {
     return this.lastPeersCount;
   }
 
-  private attachExtensions(extensions: Array<BitTorrent.ExtensionConstructor>) {
+  private attachExtensions(extensions: BitTorrent.ExtensionConstructor[]) {
     return (wire: BitTorrent.Wire, addr?: string) => {
-      extensions.forEach(extension => {
+      extensions.forEach((extension) => {
         this.extensions.push(extension.name);
         wire.use(extension);
       });
-      wire.on("close", this.detach(wire).bind(this));
+      wire.on('close', this.detach(wire).bind(this));
     };
   }
 
   private detach(wire: BitTorrent.Wire) {
     return () => {
-      this.emit("wireleft", this.torrent.wires.length, wire);
+      this.emit('wireleft', this.torrent.wires.length, wire);
       this.connections();
-    }
+    };
   }
 
   destroy(callback?: (err: string | Error) => void) {
@@ -123,9 +130,8 @@ export default class WebTorrentService extends EventEmitter {
 
   send(message: Uint8Array) {
     const { wires } = this.torrent;
-    for (let i = 0; i < wires.length; i++) {
-      const wire = wires[i];
-      const peerExtendedMapping = wire["peerExtendedMapping"];
+    for (const wire of wires) {
+      const peerExtendedMapping = wire.peerExtendedMapping;
       if (peerExtendedMapping[EXT]) {
         wire.extended(EXT, message);
       }

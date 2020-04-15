@@ -1,4 +1,4 @@
-import Peer from '../src/peer';
+import Peer from '../src/peer/peer';
 
 describe('B2BNet Peer', () => {
   it('should create a default peer', () => {
@@ -32,8 +32,8 @@ describe('B2BNet Peer', () => {
     peer.update();
     expect(peer.timestamp).toBe(now);
     expect(peer.encryptedKey).toBeUndefined();
-    peer.update(42, 'encrypted key')
+    peer.update(42, 'encrypted key');
     expect(peer.timestamp).toBe(42);
     expect(peer.encryptedKey).toBe('encrypted key');
-  })
-})
+  });
+});

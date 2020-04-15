@@ -1,5 +1,5 @@
-import Package from "./abstract";
-import PacketType from "../types";
+import Package from './abstract';
+import PacketType from '../types';
 
 export default class RpcCallPackage extends Package {
   call: string;
@@ -28,10 +28,10 @@ export default class RpcCallPackage extends Package {
       packet.c.toString(),
       packet.a.toString(),
       packet.rn
-    )
+    );
   }
 
-  toObject(): Object {
+  toObject(): object {
     const parentObject = super.toObject();
     return {
       ...parentObject,

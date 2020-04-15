@@ -3,7 +3,11 @@ export default class Peer {
   timestamp: number;
   encryptedKey?: string;
 
-  constructor(publicKey: string, timestamp: number = Date.now(), encryptedKey?: string) {
+  constructor(
+    publicKey: string,
+    timestamp: number = Date.now(),
+    encryptedKey?: string
+  ) {
     this.publicKey = publicKey;
     this.timestamp = timestamp;
     this.encryptedKey = encryptedKey;

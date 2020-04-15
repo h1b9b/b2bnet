@@ -1,10 +1,10 @@
-import PacketType from "./types";
-import DisconnectPackage from "./entities/disconnect";
-import PingPackage from "./entities/ping";
-import RpcResponsePackage from "./entities/rpcResponse";
-import RpcCallPackage from "./entities/rpcCall";
-import MessagePackage from "./entities/message";
-import Package from "./entities/abstract";
+import PacketType from './types';
+import DisconnectPackage from './entities/disconnect';
+import PingPackage from './entities/ping';
+import RpcResponsePackage from './entities/rpcResponse';
+import RpcCallPackage from './entities/rpcCall';
+import MessagePackage from './entities/message';
+import Package from './entities/abstract';
 
 export default class PackageFactory {
   parse(packet: any): Package;
@@ -14,7 +14,14 @@ export default class PackageFactory {
   parse(y: PacketType.PING): PingPackage;
   parse(y: PacketType.DISCONNECT): DisconnectPackage;
 
-  public parse(packet: any): MessagePackage | RpcCallPackage | RpcResponsePackage | PingPackage | DisconnectPackage {
+  public parse(
+    packet: any
+  ):
+    | MessagePackage
+    | RpcCallPackage
+    | RpcResponsePackage
+    | PingPackage
+    | DisconnectPackage {
     switch (packet.y.toString()) {
       case PacketType.MESSAGE:
         return MessagePackage.fromPacket(packet);
@@ -27,7 +34,6 @@ export default class PackageFactory {
       case PacketType.DISCONNECT:
         return DisconnectPackage.fromPacket(packet);
       default:
-        console.log(packet);
         throw new Error('Unknown packet type');
     }
   }
@@ -39,7 +45,14 @@ export default class PackageFactory {
   build(type: PacketType.PING): PingPackage;
   build(type: PacketType.DISCONNECT): DisconnectPackage;
 
-  public build(option: any): MessagePackage | RpcCallPackage | RpcResponsePackage | PingPackage | DisconnectPackage {
+  public build(
+    option: any
+  ):
+    | MessagePackage
+    | RpcCallPackage
+    | RpcResponsePackage
+    | PingPackage
+    | DisconnectPackage {
     switch (option.type) {
       case PacketType.MESSAGE:
         return new MessagePackage(
@@ -63,7 +76,7 @@ export default class PackageFactory {
           option.publicKey,
           option.encryptedKey,
           option.responseNonce,
-          option.result,
+          option.result
         );
       case PacketType.PING:
         return new PingPackage(
