@@ -1,6 +1,6 @@
 {
   "name": "b2bnet",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "main": "dist/b2bnet.cjs.js",
   "module": "dist/b2bnet.esm.js",
   "browser": "dist/b2bnet.umd.js",
