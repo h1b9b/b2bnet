@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import EventEmitter from 'events';
 import Peer from './peer';
 
 export default class PeerService extends EventEmitter {

@@ -3,7 +3,7 @@ import bs58check from 'bs58check-ts';
 import nacl from 'tweetnacl';
 import ripemd160 from 'ripemd160';
 import debug from 'debug';
-import { EventEmitter } from 'events';
+import EventEmitter from 'events';
 import buildExtention from './webtorrent/extension';
 import MessageService from './message/service';
 import Package from './packages/entities/abstract';

@@ -2,7 +2,7 @@ import WebTorrent from 'webtorrent';
 import BitTorrent from 'bittorrent-protocol';
 import SimplePeer from 'simple-peer';
 import { AddressInfo } from 'net';
-import { EventEmitter } from 'events';
+import EventEmitter from 'events';
 import nacl from 'tweetnacl';
 import { EXT } from './extension';
 import { toHex } from '../util';
