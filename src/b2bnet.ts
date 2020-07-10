@@ -22,7 +22,6 @@ const log = debug('B2BNet');
 interface B2BNetOptionsInterface extends WebTorrentOptions {
   seed?: string;
   timeout?: number;
-  heartbeat?: number;
   keyPair?: nacl.SignKeyPair;
 }
 
@@ -33,7 +32,6 @@ export default class B2BNet extends EventEmitter {
   identifier: string;
   timeout: number;
   serveraddress?: string = undefined;
-  heartbeattimer?: any = null;
   packageService: PackageService;
   packageHandler: PackageHandler;
   webTorrentService: WebTorrentService;
@@ -46,7 +44,6 @@ export default class B2BNet extends EventEmitter {
     {
       seed,
       timeout,
-      heartbeat,
       keyPair,
       ...options
     }: B2BNetOptionsInterface = {}
@@ -70,10 +67,6 @@ export default class B2BNet extends EventEmitter {
     log('identifier', this.identifier);
     log('public key', this.publicKey);
     log('encryption key', this.encryptedKey);
-
-    if (heartbeat) {
-      this.heartbeattimer = setInterval(this.heartbeat.bind(this), heartbeat);
-    }
 
     this.webTorrentService = new WebTorrentService(
       this.identifier,
@@ -110,11 +103,6 @@ export default class B2BNet extends EventEmitter {
     return bs58check.encode(
       Buffer.concat([Buffer.from(SEEDPREFIX, 'hex'), Buffer.from(material)])
     );
-  }
-
-  private heartbeat() {
-    this.ping();
-    this.peerService.removeTimeoutPeers();
   }
 
   private ping() {
@@ -219,7 +207,6 @@ export default class B2BNet extends EventEmitter {
   }
 
   destroy(callback?: (err: string | Error) => void) {
-    clearInterval(this.heartbeattimer);
     const disconnectPackage = this.packageService.build({
       type: PacketType.DISCONNECT,
     });
