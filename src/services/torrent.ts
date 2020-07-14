@@ -9,7 +9,6 @@ import B2BNet from '../b2bnet';
 import EventService from './events';
 import WalletService from './wallet';
 import PackageService from './package';
-import MessageService from './message';
 import PeerService from './peer';
 
 interface TorrentInterface extends WebTorrent.Torrent {
@@ -41,14 +40,12 @@ export default class WebTorrentService {
     options: WebTorrentOptions = {},
     walletService: WalletService,
     packageService: PackageService,
-    messageService: MessageService,
     peerService: PeerService,
     eventService: EventService,
   ) {
     const wireExtensionBuilder = new WireExtensionBuilder(
       walletService,
       packageService,
-      messageService,
       peerService,
       eventService
     );

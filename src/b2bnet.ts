@@ -1,6 +1,5 @@
 import { SignKeyPair } from 'tweetnacl';
 import debug from 'debug';
-import MessageService from './services/message';
 import Package from './packages/entities/abstract';
 import PackageService from './services/package';
 import PacketType from './packages/types';
@@ -20,23 +19,22 @@ interface B2BNetOptionsInterface extends WebTorrentOptions {
 }
 
 export default class B2BNet {
+  address: string;
   identifier: string;
   serveraddress?: string = undefined;
+
   walletService: WalletService;
   packageService: PackageService;
   webTorrentService: WebTorrentService;
   rpcService: RpcService;
   peerService: PeerService;
-  messageService: MessageService;
   addressService: AddressService;
   eventService: EventService;
-  address: string;
 
   constructor(
     identifier: any = null,
     { seed, timeout, keyPair, ...options }: B2BNetOptionsInterface = {}
   ) {
-    this.messageService = new MessageService();
     this.addressService = new AddressService();
     this.walletService = new WalletService(identifier, seed, keyPair);
     this.eventService = new EventService(this.walletService.address);
@@ -64,7 +62,6 @@ export default class B2BNet {
       options,
       this.walletService,
       this.packageService,
-      this.messageService,
       this.peerService,
       this.eventService
     );

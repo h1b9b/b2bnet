@@ -28,13 +28,12 @@ export class WireExtensionBuilder {
   constructor(
     walletService: WalletService,
     packageService: PackageService,
-    messageService: MessageService,
     peerService: PeerService,
     eventService: EventService,
   ) {
     this.walletService = walletService;
     this.packageService = packageService;
-    this.messageService = messageService;
+    this.messageService = new MessageService();
     this.addressService = new AddressService();
     this.eventService = eventService;
     this.peerService = peerService;
