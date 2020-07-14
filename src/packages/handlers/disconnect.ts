@@ -5,6 +5,6 @@ export default function disconnectHandler(
   b2bnet: B2BNet,
   packet: DisconnectPackage
 ) {
-  const address = b2bnet.address(packet.publicKey);
+  const address = b2bnet.addressService.get(packet.publicKey);
   b2bnet.peerService.removePeer(address);
 }

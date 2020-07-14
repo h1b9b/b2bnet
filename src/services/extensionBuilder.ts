@@ -1,11 +1,11 @@
 import { Wire, ExtensionConstructor } from 'bittorrent-protocol';
 import B2BNet from '../b2bnet';
-import WalletService from '../services/wallet';
-import PackageService from '../services/package';
-import MessageService from '../services/message';
-import AddressService from '../services/address';
-import PeerService from '../services/peer';
-import EventService from '../services/events';
+import WalletService from './wallet';
+import PackageService from './package';
+import MessageService from './message';
+import AddressService from './address';
+import PeerService from './peer';
+import EventService from './events';
 
 export const EXT = 'b2b_channel';
 

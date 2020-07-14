@@ -3,7 +3,7 @@ import BitTorrent from 'bittorrent-protocol';
 import SimplePeer from 'simple-peer';
 import { AddressInfo } from 'net';
 import nacl from 'tweetnacl';
-import { EXT, WireExtensionBuilder } from '../webtorrent/extension';
+import { EXT, WireExtensionBuilder } from './extensionBuilder';
 import { toHex } from '../util';
 import B2BNet from '../b2bnet';
 import EventService from './events';
