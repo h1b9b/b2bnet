@@ -16,6 +16,6 @@ export default function messagePacketHandler(
 ) {
   // log("message", b2bnet.identifier, packet);
   const message = parseMessage(packet.message);
-  const from = b2bnet.address(packet.publicKey);
+  const from = b2bnet.addressService.get(packet.publicKey);
   b2bnet.emit('message', from, message);
 }

@@ -1,39 +1,33 @@
-import nacl, { BoxKeyPair } from 'tweetnacl';
+import nacl from 'tweetnacl';
 import bencode from 'bencode';
-import Package from './entities/abstract';
-import PackageFactory from './factory';
-import EncryptPackage from './encrypt';
+import Package from '../packages/entities/abstract';
+import PackageFactory from '../packages/factory';
+import EncryptionService from './encryption';
+import PeerService from './peer';
+import WalletService from './wallet';
+import B2BNet from '../b2bnet';
+import PackageHandler from '../packages/handler';
 
 export default class PackageService {
-  identifier: string;
-  publicKey: string;
-  encryptedKey: string;
-  timeout: number;
-  secretKey: Uint8Array;
+  walletService: WalletService;
+  peerService: PeerService;
   packageFactory: PackageFactory;
-  encryptPackage: EncryptPackage;
+  encryptionService: EncryptionService;
 
   constructor(
-    identifier: string,
-    publicKey: string,
-    encryptedKey: string,
-    timeout: number,
-    keyPairEncrypt: BoxKeyPair,
-    secretKey: Uint8Array
+    walletService: WalletService,
+    peerService: PeerService
   ) {
-    this.identifier = identifier;
-    this.publicKey = publicKey;
-    this.encryptedKey = encryptedKey;
-    this.timeout = timeout;
-    this.secretKey = secretKey;
+    this.peerService = peerService;
+    this.walletService = walletService;
+    this.encryptionService = new EncryptionService(walletService.keyPairEncrypt);
     this.packageFactory = new PackageFactory();
-    this.encryptPackage = new EncryptPackage(keyPairEncrypt);
   }
 
   private encodeAndSignPackage(object: Package): Uint8Array {
     const encodedPacket = bencode.encode(object.toObject());
     return bencode.encode({
-      s: nacl.sign.detached(encodedPacket, this.secretKey),
+      s: nacl.sign.detached(encodedPacket, this.walletService.secretKey),
       p: encodedPacket,
     });
   }
@@ -42,7 +36,7 @@ export default class PackageService {
     const encodedPacket = this.encodeAndSignPackage(object);
 
     if (to != null) {
-      return this.encryptPackage.encrypt(encodedPacket, to);
+      return this.encryptionService.encrypt(encodedPacket, to);
     }
 
     return encodedPacket;
@@ -54,8 +48,8 @@ export default class PackageService {
   }
 
   private extractPacket(message: Buffer): Uint8Array | null {
-    if (this.encryptPackage.isEncrypted(message)) {
-      const decryptedMessage = this.encryptPackage.decrypt(message);
+    if (this.encryptionService.isEncrypted(message)) {
+      const decryptedMessage = this.encryptionService.decrypt(message);
       if (decryptedMessage) {
         return this.decodePacket(Buffer.from(decryptedMessage));
       }
@@ -69,7 +63,7 @@ export default class PackageService {
     const unpackedMessage = this.extractPacket(message);
     if (unpackedMessage != null) {
       const decodedPackage = this.packageFactory.parse(unpackedMessage);
-      if (decodedPackage.isValid(this.identifier, this.timeout)) {
+      if (decodedPackage.isValid(this.walletService.identifier, this.peerService.timeout)) {
         return decodedPackage;
       }
     }
@@ -79,10 +73,14 @@ export default class PackageService {
 
   build(options: {}): Package {
     return this.packageFactory.build({
-      identifier: this.identifier,
-      publicKey: this.publicKey,
-      encryptedKey: this.encryptedKey,
+      identifier: this.walletService.identifier,
+      publicKey: this.walletService.publicKey,
+      encryptedKey: this.walletService.encryptedKey,
       ...options,
     });
+  }
+
+  handle(b2bnet: B2BNet, packet: Package) {
+    PackageHandler.exec(b2bnet, packet);
   }
 }

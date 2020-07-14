@@ -1,4 +1,4 @@
-import Peer from '../src/peer/peer';
+import Peer from '../src/models/peer.model';
 
 describe('B2BNet Peer', () => {
   it('should create a default peer', () => {

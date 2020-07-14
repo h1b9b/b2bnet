@@ -1,7 +1,7 @@
 import nacl from 'tweetnacl';
 import { toHex } from '../util';
 import PacketType from '../packages/types';
-import PackageService from '../packages/service';
+import PackageService from './package';
 
 export type RpcApiFunction = (address: string, arg: any) => Promise<any>;
 

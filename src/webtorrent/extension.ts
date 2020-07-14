@@ -1,7 +1,13 @@
 import { Wire, ExtensionConstructor } from 'bittorrent-protocol';
 import B2BNet from '../b2bnet';
+import WalletService from '../services/wallet';
+import PackageService from '../services/package';
+import MessageService from '../services/message';
+import AddressService from '../services/address';
+import PeerService from '../services/peer';
+import EventService from '../services/events';
 
-export const EXT = 'bo_channel';
+export const EXT = 'b2b_channel';
 
 interface WireInterface extends Wire {
   extendedHandshake: {
@@ -11,49 +17,78 @@ interface WireInterface extends Wire {
   };
 }
 
-function buildOnExtendedHandshake(b2bnet: B2BNet, wire: WireInterface) {
-  return (handshake: { [key: string]: any }): void => {
-    b2bnet.handshake();
-    b2bnet.sawPeer(handshake.pk.toString(), handshake.ek.toString());
-  };
-}
+export class WireExtensionBuilder {
+  walletService: WalletService;
+  packageService: PackageService;
+  messageService: MessageService;
+  addressService: AddressService;
+  peerService: PeerService;
+  eventService: EventService;
 
-function buildOnMessage(b2bnet: B2BNet) {
-  return (message: Buffer): void => {
-    const hash = b2bnet.messageService.hash(message);
+  constructor(
+    walletService: WalletService,
+    packageService: PackageService,
+    messageService: MessageService,
+    peerService: PeerService,
+    eventService: EventService,
+  ) {
+    this.walletService = walletService;
+    this.packageService = packageService;
+    this.messageService = messageService;
+    this.addressService = new AddressService();
+    this.eventService = eventService;
+    this.peerService = peerService;
+  }
 
-    if (b2bnet.messageService.isNew(hash)) {
-      const packet = b2bnet.packageService.decode(message);
-      if (packet != null) {
-        b2bnet.sawPeer(packet.publicKey, packet.encryptedKey);
-        b2bnet.handle(packet);
+  onExtendedHandshake() {
+    return (handshake: { [key: string]: any }): void => {
+      const publicKey = handshake.pk.toString();
+      const encryptedKey = handshake.ek.toString();
+      const address = this.addressService.get(publicKey);
+      this.peerService.sawPeer(address, publicKey, encryptedKey);
+    };
+  }
+
+  onMessage(b2bnet: B2BNet) {
+    return (message: Buffer): void => {
+      const hash = this.messageService.hash(message);
+
+      if (this.messageService.isNew(hash)) {
+        const packet = this.packageService.decode(message);
+        if (packet != null) {
+          const address = this.addressService.get(packet.publicKey);
+          this.peerService.sawPeer(address, packet.publicKey, packet.encryptedKey);
+          this.packageService.handle(b2bnet, packet);
+        }
+      }
+
+      this.messageService.refresh(hash);
+    };
+  }
+
+  get(b2bnet: B2BNet): ExtensionConstructor {
+    const builder = this;
+
+    class ExtendedExtension {
+      name: string = EXT;
+      onExtendedHandshake?(handshake: { [key: string]: any }): void;
+      onMessage?(buffer: Buffer): void;
+
+      constructor(wire: Wire) {
+        const extendedWire: WireInterface = wire as WireInterface;
+        extendedWire.extendedHandshake = {
+          id: builder.walletService.identifier,
+          pk: builder.walletService.publicKey,
+          ek: builder.walletService.encryptedKey,
+        };
+
+        this.onMessage = builder.onMessage(b2bnet);
+        this.onExtendedHandshake = builder.onExtendedHandshake();
       }
     }
 
-    b2bnet.messageService.refresh(hash);
-  };
-}
+    ExtendedExtension.prototype.name = EXT;
 
-export default function buildExtention(b2bnet: B2BNet): ExtensionConstructor {
-  class ExtendedExtension {
-    name: string = EXT;
-    onExtendedHandshake?(handshake: { [key: string]: any }): void;
-    onMessage?(buffer: Buffer): void;
-
-    constructor(wire: Wire) {
-      const extendedWire: WireInterface = wire as WireInterface;
-      extendedWire.extendedHandshake = {
-        id: b2bnet.identifier,
-        pk: b2bnet.publicKey,
-        ek: b2bnet.encryptedKey,
-      };
-
-      this.onMessage = buildOnMessage(b2bnet);
-      this.onExtendedHandshake = buildOnExtendedHandshake(b2bnet, extendedWire);
-    }
+    return ExtendedExtension;
   }
-
-  ExtendedExtension.prototype.name = EXT;
-
-  return ExtendedExtension;
 }

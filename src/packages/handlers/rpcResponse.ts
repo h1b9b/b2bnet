@@ -19,7 +19,7 @@ export default function rpcResponseHandler(
   const executed = b2bnet.rpcService.callResponse(nonce, response);
 
   if (executed) {
-    const address = b2bnet.address(packet.publicKey);
+    const address = b2bnet.addressService.get(packet.publicKey);
     b2bnet.emit('rpc-response', address, nonce, response);
   }
 }

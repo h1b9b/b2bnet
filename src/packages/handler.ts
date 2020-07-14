@@ -11,13 +11,8 @@ import RpcResponsePackage from './entities/rpcResponse';
 import RpcCallPackage from './entities/rpcCall';
 
 export default class PackageHandler {
-  b2bnet: B2BNet;
-
-  constructor(b2bnet: B2BNet) {
-    this.b2bnet = b2bnet;
-  }
-
-  exec(
+  static exec(
+    b2bnet: B2BNet,
     packet:
       | MessagePackage
       | PingPackage
@@ -26,19 +21,19 @@ export default class PackageHandler {
       | RpcResponsePackage
   ) {
     if (packet instanceof MessagePackage) {
-      return messagePacketHandler(this.b2bnet, packet);
+      return messagePacketHandler(b2bnet, packet);
     }
     if (packet instanceof PingPackage) {
-      return pingHandler(this.b2bnet, packet);
+      return pingHandler(b2bnet, packet);
     }
     if (packet instanceof DisconnectPackage) {
-      return disconnectHandler(this.b2bnet, packet);
+      return disconnectHandler(b2bnet, packet);
     }
     if (packet instanceof RpcCallPackage) {
-      return rpcCallHandler(this.b2bnet, packet);
+      return rpcCallHandler(b2bnet, packet);
     }
     if (packet instanceof RpcResponsePackage) {
-      return rpcResponseHandler(this.b2bnet, packet);
+      return rpcResponseHandler(b2bnet, packet);
     }
   }
 }

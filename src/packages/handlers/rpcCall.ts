@@ -18,7 +18,7 @@ export default async function rpcCallHandler(
   const nonce = packet.responseNonce;
   const call = packet.call;
   const args = parseArguments(packet.args);
-  const address = b2bnet.address(packet.publicKey);
+  const address = b2bnet.addressService.get(packet.publicKey);
 
   const result = await b2bnet.rpcService.callApi(address, call, args);
   const responsePackage = b2bnet.rpcService.buildResponsePackage(result, nonce);

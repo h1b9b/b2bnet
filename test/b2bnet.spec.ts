@@ -15,23 +15,23 @@ describe('B2BNet', () => {
     });
 
     it('should set server identifier', () => {
-      expect(b2bnet.identifier).toBe('bYSkTy24xXJj6dWe79ZAQXKJZrn2n983SQ');
+      expect(b2bnet.walletService.identifier).toBe('bYSkTy24xXJj6dWe79ZAQXKJZrn2n983SQ');
     });
 
     it('should set server public key', () => {
-      expect(b2bnet.publicKey).toBe(
+      expect(b2bnet.walletService.publicKey).toBe(
         'CXENBY9X3x5TN1yjRyu1U1WkGuujuVBNiqxA16oAYbFo'
       );
     });
 
     it('should be able to get server address from public key', () => {
-      expect(b2bnet.identifier).toBe(
-        b2bnet.address('CXENBY9X3x5TN1yjRyu1U1WkGuujuVBNiqxA16oAYbFo')
+      expect(b2bnet.walletService.identifier).toBe(
+        b2bnet.addressService.get('CXENBY9X3x5TN1yjRyu1U1WkGuujuVBNiqxA16oAYbFo')
       );
     });
 
     it('should be able to get server address from public key array', () => {
-      expect(b2bnet.identifier).toBe(b2bnet.address(b2bnet.keyPair.publicKey));
+      expect(b2bnet.walletService.identifier).toBe(b2bnet.addressService.get(b2bnet.walletService.keyPair.publicKey));
     });
   });
 
@@ -41,10 +41,10 @@ describe('B2BNet', () => {
 
     beforeEach(() => {
       b2bnetServer = new B2BNet();
-      b2bnetClient = new B2BNet(b2bnetServer.address());
+      b2bnetClient = new B2BNet(b2bnetServer.address);
 
       // connect the two clients together
-      b2bnetServer.webTorrentService.on('infoHash', () => {
+      b2bnetServer.eventService.on('webtorrent', 'infoHash', () => {
         b2bnetServer.webTorrentService.addPeer(b2bnetClient.getPublicAddress());
       });
     });
@@ -54,34 +54,10 @@ describe('B2BNet', () => {
       b2bnetServer.close();
     });
 
-    it('server see the wire', (done) => {
-      function wireseenCount(count: number) {
-        try {
-          expect(count).toBe(1);
-          done();
-        } catch (error) {
-          done(error);
-        }
-      }
-      b2bnetServer.on('wireseen', wireseenCount);
-    });
-
-    it('client see the wire', (done) => {
-      function wireseenCount(count: number) {
-        try {
-          expect(count).toBe(1);
-          done();
-        } catch (error) {
-          done(error);
-        }
-      }
-      b2bnetClient.on('wireseen', wireseenCount);
-    });
-
     it('client see remote server address as peer', (done) => {
       function seenAddress(address: string) {
         try {
-          expect(address).toBe(b2bnetServer.address());
+          expect(address).toBe(b2bnetServer.address);
           done();
         } catch (error) {
           done(error);
@@ -93,7 +69,7 @@ describe('B2BNet', () => {
     it('server see remote client address as peer', (done) => {
       function seenAddress(address: string) {
         try {
-          expect(address).toBe(b2bnetClient.address());
+          expect(address).toBe(b2bnetClient.address);
           done();
         } catch (error) {
           done(error);
@@ -105,7 +81,7 @@ describe('B2BNet', () => {
     it('client see the server correct address', (done) => {
       function serverSeenAddress(address: string) {
         try {
-          expect(address).toBe(b2bnetServer.address());
+          expect(address).toBe(b2bnetServer.address);
           done();
         } catch (error) {
           done(error);
@@ -123,8 +99,8 @@ describe('B2BNet', () => {
 
     beforeEach((done) => {
       b2bnetServer = new B2BNet(null);
-      b2bnetClient1 = new B2BNet(b2bnetServer.address());
-      b2bnetClient2 = new B2BNet(b2bnetServer.address());
+      b2bnetClient1 = new B2BNet(b2bnetServer.address);
+      b2bnetClient2 = new B2BNet(b2bnetServer.address);
 
       b2bnetClient2.on('server', () => {
         done();
@@ -138,7 +114,7 @@ describe('B2BNet', () => {
         b2bnetServer.webTorrentService.addPeer(
           b2bnetClient2.getPublicAddress()
         );
-        b2bnetServer.once('seen', () => {
+        b2bnetServer.eventService.emmiter.once('seen', () => {
           setTimeout(() => {
             b2bnetClient1.webTorrentService.addPeer(
               b2bnetClient2.getPublicAddress()
@@ -161,7 +137,7 @@ describe('B2BNet', () => {
         let expectsCount = 2;
         function expectedMessage(from: string, message: any) {
           try {
-            expect(from).toBe(b2bnetServer.address());
+            expect(from).toBe(b2bnetServer.address);
             expect(message).toEqual(msg);
             expectsCount--;
 
@@ -178,11 +154,11 @@ describe('B2BNet', () => {
       });
 
       it('server should send message to only client 1', (done) => {
-        b2bnetServer.send(b2bnetClient1.address(), msg);
+        b2bnetServer.send(b2bnetClient1.address, msg);
 
         function expectedMessage(receiver: string, message: any) {
           try {
-            expect(receiver).toBe(b2bnetServer.address());
+            expect(receiver).toBe(b2bnetServer.address);
             expect(message).toEqual(msg);
             expect(client2ExpectMessage).toBeCalledTimes(0);
             done();
