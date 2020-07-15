@@ -1,15 +1,12 @@
 import WebTorrent from 'webtorrent';
-import BitTorrent from 'bittorrent-protocol';
+import BitTorrent, { ExtensionConstructor } from 'bittorrent-protocol';
 import SimplePeer from 'simple-peer';
 import { AddressInfo } from 'net';
 import nacl from 'tweetnacl';
-import { EXT, WireExtensionBuilder } from './extensionBuilder';
+import { EXT } from './extensionBuilder';
 import { toHex } from '../util';
-import B2BNet from '../b2bnet';
 import EventService from './events';
 import WalletService from './wallet';
-import PackageService from './package';
-import PeerService from './peer';
 
 interface TorrentInterface extends WebTorrent.Torrent {
   wires: BitTorrent.Wire[];
@@ -24,9 +21,16 @@ export interface WebTorrentOptions {
   announce?: string[];
   torrentOpts?: {};
   iceServers?: boolean;
-  webtorrent?: WebTorrentInterface;
+  // webtorrent?: WebTorrentInterface;
   webtorrentOpts?: { [key: string]: any };
+  extensions?: ExtensionConstructor[];
 }
+
+const defaultAnnounce = [
+  'wss://hub.bugout.link',
+  'wss://tracker.openwebtorrent.com',
+  'wss://tracker.btorrent.xyz',
+];
 
 export default class WebTorrentService {
   eventService: EventService;
@@ -36,28 +40,12 @@ export default class WebTorrentService {
   infoHash?: string;
 
   constructor(
-    b2bnet: B2BNet,
     options: WebTorrentOptions = {},
     walletService: WalletService,
-    packageService: PackageService,
-    peerService: PeerService,
     eventService: EventService,
   ) {
-    const wireExtensionBuilder = new WireExtensionBuilder(
-      walletService,
-      packageService,
-      peerService,
-      eventService
-    );
     this.eventService = eventService;
-    options.announce = options.announce || [
-            'wss://hub.bugout.link',
-            'wss://tracker.openwebtorrent.com',
-            'wss://tracker.btorrent.xyz',
-          ];
-    this.webtorrent =
-    options.webtorrent ||
-      (new WebTorrent(this.buildOptions(options)) as WebTorrentInterface);
+    this.webtorrent = new WebTorrent(this.buildOptions(options)) as WebTorrentInterface;
       
     this.torrent = this.initializeTorrent(
       walletService.identifier,
@@ -66,18 +54,15 @@ export default class WebTorrentService {
     );
     this.torrent.on(
       'wire',
-      this.attachExtensions([
-        // TODO: Use the new builder service and split b2bnet usage
-        wireExtensionBuilder.get(b2bnet),
-      ])
+      this.attachExtensions(options.extensions)
     );
     this.torrent.on('infoHash', () => this.emit('infoHash'));
   }
 
   private initializeTorrent(
     identifier: string,
-    announce?: string[],
-    torrentOpts?: {}
+    announce: string[] = defaultAnnounce,
+    torrentOpts: {} = {}
   ): TorrentInterface {
     const options = {
       name: identifier,
@@ -126,7 +111,7 @@ export default class WebTorrentService {
     return webtorrentOpts;
   }
 
-  private attachExtensions(extensions: BitTorrent.ExtensionConstructor[]) {
+  private attachExtensions(extensions: BitTorrent.ExtensionConstructor[] = []) {
     return (wire: BitTorrent.Wire, addr?: string) => {
       extensions.forEach((extension) => {
         this.extensions.push(extension.name);

@@ -9,6 +9,7 @@ import WebTorrentService, { WebTorrentOptions } from './services/torrent';
 import AddressService from './services/address';
 import WalletService from './services/wallet';
 import EventService from './services/events';
+import { WireExtensionBuilder } from './services/extensionBuilder';
 
 const log = debug('B2BNet');
 
@@ -57,12 +58,16 @@ export default class B2BNet {
     log('public key', this.walletService.publicKey);
     log('encryption key', this.walletService.encryptedKey);
 
-    this.webTorrentService = new WebTorrentService(
-      this,
-      options,
+    const wireExtensionBuilder = new WireExtensionBuilder(
       this.walletService,
       this.packageService,
       this.peerService,
+      this.eventService
+    );
+
+    this.webTorrentService = new WebTorrentService(
+      { ...options, extensions: [wireExtensionBuilder.get(this)] },
+      this.walletService,
       this.eventService
     );
 
