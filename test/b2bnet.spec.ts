@@ -71,7 +71,6 @@ describe('B2BNet', () => {
 
       await b2bnetServer.addPeer(b2bnetClient);
     });
-
   });
 
   describe('RPC and message passing', () => {
@@ -183,7 +182,6 @@ describe('B2BNet', () => {
         b2bnetClient.rpc(b2bnetServer.address, 'ping', msg, expectPong);
       });
 
-      
       it('should ping on client', (done) => {
         async function pingPongApi(address: string, args: object) {
           return { ...args, pong: true };
