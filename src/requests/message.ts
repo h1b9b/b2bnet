@@ -1,7 +1,7 @@
-import Package from './abstract';
-import PacketType from '../types';
+import RequestType from './types';
+import Request from './request';
 
-export default class MessagePackage extends Package {
+export default class MessageRequest extends Request {
   message: string;
 
   constructor(
@@ -10,12 +10,12 @@ export default class MessagePackage extends Package {
     encryptedKey: string,
     message: string = ''
   ) {
-    super(PacketType.MESSAGE, identifier, publicKey, encryptedKey);
+    super(RequestType.MESSAGE, identifier, publicKey, encryptedKey);
     this.message = message;
   }
 
-  static fromPacket(packet: any): MessagePackage {
-    return new MessagePackage(
+  static fromPacket(packet: any): MessageRequest {
+    return new MessageRequest(
       packet.i.toString(),
       packet.pk.toString(),
       packet.ek.toString(),

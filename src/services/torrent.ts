@@ -2,9 +2,7 @@ import WebTorrent from 'webtorrent';
 import BitTorrent, { ExtensionConstructor } from 'bittorrent-protocol';
 import SimplePeer from 'simple-peer';
 import { AddressInfo } from 'net';
-import nacl from 'tweetnacl';
 import { EXT } from './extensionBuilder';
-import { toHex } from '../util';
 import EventService from './events';
 import WalletService from './wallet';
 
@@ -43,20 +41,19 @@ export default class WebTorrentService {
   constructor(
     options: WebTorrentOptions = {},
     walletService: WalletService,
-    eventService: EventService,
+    eventService: EventService
   ) {
     this.eventService = eventService;
-    this.webtorrent = new WebTorrent(this.buildOptions(options)) as WebTorrentInterface;
-      
+    this.webtorrent = new WebTorrent(
+      this.buildOptions(options)
+    ) as WebTorrentInterface;
+
     this.torrent = this.initializeTorrent(
       walletService.identifier,
       options.announce,
       options.torrentOpts
     );
-    this.torrent.on(
-      'wire',
-      this.attachExtensions(options.extensions)
-    );
+    this.torrent.on('wire', this.attachExtensions(options.extensions));
 
     this.Ready = new Promise(async (resolve, reject) => {
       try {

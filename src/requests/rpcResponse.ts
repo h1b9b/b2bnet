@@ -1,7 +1,7 @@
-import Package from './abstract';
-import PacketType from '../types';
+import RequestType from './types';
+import Request from './request';
 
-export default class RpcResponsePackage extends Package {
+export default class RPCResponseRequest extends Request {
   result: string;
   responseNonce: Uint8Array;
 
@@ -12,13 +12,13 @@ export default class RpcResponsePackage extends Package {
     responseNonce: Uint8Array,
     result: string = ''
   ) {
-    super(PacketType.RPCRESPONSE, identifier, publicKey, encryptedKey);
+    super(RequestType.RPCRESPONSE, identifier, publicKey, encryptedKey);
     this.result = result;
     this.responseNonce = responseNonce;
   }
 
-  static fromPacket(packet: any): RpcResponsePackage {
-    return new RpcResponsePackage(
+  static fromPacket(packet: any): RPCResponseRequest {
+    return new RPCResponseRequest(
       packet.i.toString(),
       packet.pk.toString(),
       packet.ek.toString(),

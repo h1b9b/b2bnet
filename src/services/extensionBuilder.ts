@@ -1,11 +1,10 @@
 import { Wire, ExtensionConstructor } from 'bittorrent-protocol';
 import B2BNet from '../b2bnet';
 import WalletService from './wallet';
-import PackageService from './package';
 import MessageService from './message';
 import AddressService from './address';
 import PeerService from './peer';
-import EventService from './events';
+import Router from './router';
 
 export const EXT = 'b2b_channel';
 
@@ -19,24 +18,21 @@ interface WireInterface extends Wire {
 
 export class WireExtensionBuilder {
   walletService: WalletService;
-  packageService: PackageService;
   messageService: MessageService;
   addressService: AddressService;
   peerService: PeerService;
-  eventService: EventService;
+  router: Router;
 
   constructor(
     walletService: WalletService,
-    packageService: PackageService,
     peerService: PeerService,
-    eventService: EventService,
+    router: Router
   ) {
     this.walletService = walletService;
-    this.packageService = packageService;
+    this.peerService = peerService;
     this.messageService = new MessageService();
     this.addressService = new AddressService();
-    this.eventService = eventService;
-    this.peerService = peerService;
+    this.router = router;
   }
 
   onExtendedHandshake() {
@@ -49,16 +45,11 @@ export class WireExtensionBuilder {
   }
 
   onMessage(b2bnet: B2BNet) {
-    return (message: Buffer): void => {
-      const hash = this.messageService.hash(message);
+    return (buffer: Buffer): void => {
+      const hash = this.messageService.hash(buffer);
 
       if (this.messageService.isNew(hash)) {
-        const packet = this.packageService.decode(message);
-        if (packet != null) {
-          const address = this.addressService.get(packet.publicKey);
-          this.peerService.sawPeer(address, packet.publicKey, packet.encryptedKey);
-          this.packageService.handle(b2bnet, packet);
-        }
+        this.router.dispatch(b2bnet, buffer);
       }
 
       this.messageService.refresh(hash);

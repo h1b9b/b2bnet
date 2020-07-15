@@ -1,8 +1,8 @@
-import Package from "../entities/abstract";
-import AddressService from "../../services/address";
-import B2BNet from "../../b2bnet";
+import AddressService from '../services/address';
+import B2BNet from '../b2bnet';
+import Request from '../requests/request';
 
-export default abstract class AbstractHandler<T extends Package> {
+export default abstract class BaseController<T extends Request> {
   addressService: AddressService;
 
   constructor() {
@@ -13,12 +13,12 @@ export default abstract class AbstractHandler<T extends Package> {
     try {
       if (args != null) {
         return JSON.parse(args);
-      };
+      }
     } catch (e) {
       // console.log("Malformed response JSON: " + responsestring);
       return null;
     }
   }
 
-  public async abstract handle(b2bnet: B2BNet, packet: T): Promise<any>;
-};
+  public abstract async call(b2bnet: B2BNet, packet: T): Promise<any>;
+}

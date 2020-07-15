@@ -1,9 +1,11 @@
-import B2BNet from '../../b2bnet';
-import RpcResponsePackage from '../entities/rpcResponse';
-import AbstractHandler from './abstract';
-import RpcService from '../../services/rpc';
+import BaseController from './base';
+import RPCResponseRequest from '../requests/rpcResponse';
+import RpcService from '../services/rpc';
+import B2BNet from '../b2bnet';
 
-export default class RPCResponseHandler extends AbstractHandler<RpcResponsePackage> {
+export default class RPCResponseController extends BaseController<
+  RPCResponseRequest
+> {
   rpcService: RpcService;
 
   constructor(rpcService: RpcService) {
@@ -11,11 +13,11 @@ export default class RPCResponseHandler extends AbstractHandler<RpcResponsePacka
     this.rpcService = rpcService;
   }
 
-  public async handle(b2bnet: B2BNet, packet: RpcResponsePackage) {
+  public async call(b2bnet: B2BNet, packet: RPCResponseRequest) {
     const nonce = packet.responseNonce;
     const response = this.parseArguments(packet.result);
     const executed = this.rpcService.callResponse(nonce, response);
-  
+
     if (executed) {
       const address = this.addressService.get(packet.publicKey);
       b2bnet.emit('rpc-response', address, nonce, response);

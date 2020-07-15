@@ -1,4 +1,4 @@
-import Peer from '../models/peer.model';
+import Peer from '../models/peer';
 import EventService from './events';
 import WalletService from './wallet';
 
@@ -10,7 +10,11 @@ export default class PeerService {
   eventService: EventService;
   walletService: WalletService;
 
-  constructor(eventService: EventService, walletService: WalletService, timeout?: number) {
+  constructor(
+    eventService: EventService,
+    walletService: WalletService,
+    timeout?: number
+  ) {
     this.timeout = timeout || PEERTIMEOUT;
     this.eventService = eventService;
     this.walletService = walletService;
@@ -64,7 +68,7 @@ export default class PeerService {
       if (!peer || peer.timedOut(this.timeout) === false) {
         const newPeer = new Peer(publicKey, Date.now(), encryptedKey);
         this.peers[address] = newPeer;
-        this.emit('seen', address)
+        this.emit('seen', address);
       } else {
         peer.update(Date.now(), encryptedKey);
         this.emit('updated', address);
@@ -73,10 +77,10 @@ export default class PeerService {
   }
 
   emit(event: string, ...args: any[]): boolean {
-    return this.eventService.emit('peer', event, ...args)
+    return this.eventService.emit('peer', event, ...args);
   }
 
-  on(event: string, listener : (...args: any[]) => void) {
-    this.eventService.on('peer', event, listener)
+  on(event: string, listener: (...args: any[]) => void) {
+    this.eventService.on('peer', event, listener);
   }
 }

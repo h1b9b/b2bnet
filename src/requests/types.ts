@@ -1,4 +1,4 @@
-enum PacketType {
+enum RequestType {
   MESSAGE = 'm',
   RPCCALL = 'r',
   RPCRESPONSE = 'rr',
@@ -6,4 +6,4 @@ enum PacketType {
   DISCONNECT = 'x',
 }
 
-export default PacketType;
+export default RequestType;

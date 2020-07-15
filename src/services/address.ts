@@ -6,7 +6,7 @@ import ripemd160 from 'ripemd160';
 const ADDRESSPREFIX = '55';
 
 export default class AddressService {
-  private generateAddress(publicKey: Uint8Array): string { 
+  private generateAddress(publicKey: Uint8Array): string {
     return bs58check.encode(
       Buffer.concat([
         Buffer.from(ADDRESSPREFIX, 'hex'),
@@ -22,5 +22,4 @@ export default class AddressService {
 
     return this.generateAddress(publicKey);
   }
-
 }

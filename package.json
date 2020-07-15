@@ -55,7 +55,7 @@
     "clean": "rimraf dist/",
     "build": "rollup -c",
     "dev": "rollup -c -w",
-    "test": "jest",
+    "test": "jest --colors",
     "lint": "tslint 'src/**/*.ts' 'test/**/*.ts'",
     "prepare": "npm run build"
   },

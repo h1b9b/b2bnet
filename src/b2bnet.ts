@@ -1,8 +1,7 @@
 import { SignKeyPair } from 'tweetnacl';
 import debug from 'debug';
-import Package from './packages/entities/abstract';
-import PackageService from './services/package';
-import PacketType from './packages/types';
+import EncodingService from './services/encoding';
+import RequestType from './requests/types';
 import PeerService from './services/peer';
 import RpcService, { RpcApiFunction } from './services/rpc';
 import WebTorrentService, { WebTorrentOptions } from './services/torrent';
@@ -10,6 +9,9 @@ import AddressService from './services/address';
 import WalletService from './services/wallet';
 import EventService from './services/events';
 import { WireExtensionBuilder } from './services/extensionBuilder';
+import Router from './services/router';
+import RequestBuilder from './services/requestBuilder';
+import Request from './requests/request';
 
 const log = debug('B2BNet');
 
@@ -26,12 +28,14 @@ export default class B2BNet {
   public Ready: Promise<any>;
 
   private walletService: WalletService;
-  private packageService: PackageService;
+  private encodingService: EncodingService;
   private webTorrentService: WebTorrentService;
   private rpcService: RpcService;
   private peerService: PeerService;
   private addressService: AddressService;
   private eventService: EventService;
+  private router: Router;
+  private requestBuilder: RequestBuilder;
 
   constructor(
     identifier: any = null,
@@ -41,30 +45,26 @@ export default class B2BNet {
     this.addressService = new AddressService();
     this.walletService = new WalletService(identifier, seed, keyPair);
     this.eventService = new EventService(this.walletService);
+    this.requestBuilder = new RequestBuilder(this.walletService);
+    this.encodingService = new EncodingService(this.walletService);
     this.peerService = new PeerService(
       this.eventService,
       this.walletService,
       timeout
     );
+    this.router = new Router(
+      this.rpcService,
+      this.peerService,
+      this.walletService
+    );
 
     this.address = this.walletService.address;
     this.identifier = this.walletService.identifier;
-    this.packageService = new PackageService(
-      this.walletService,
-      this.peerService,
-      this.rpcService
-    );
-
-    log('address', this.address);
-    log('identifier', this.identifier);
-    log('public key', this.walletService.publicKey);
-    log('encryption key', this.walletService.encryptedKey);
 
     const wireExtensionBuilder = new WireExtensionBuilder(
       this.walletService,
-      this.packageService,
       this.peerService,
-      this.eventService
+      this.router
     );
 
     this.webTorrentService = new WebTorrentService(
@@ -93,21 +93,21 @@ export default class B2BNet {
       this.serveraddress = address;
       this.emit('server', address);
     }
-  }
+  };
 
   private ping() {
-    const pingPackage = this.packageService.build({ type: PacketType.PING });
+    const pingPackage = this.requestBuilder.build({ type: RequestType.PING });
     this.sendPackage(pingPackage);
   }
 
-  sendPackage(packet: Package, publicKey?: string) {
+  sendPackage(request: Request, publicKey?: string) {
     let peerEncryptKey;
     if (publicKey != null) {
       const peerAddress = this.addressService.get(publicKey);
       peerEncryptKey = this.peerService.getEncryptedKey(peerAddress);
     }
 
-    const message = this.packageService.encode(packet, peerEncryptKey);
+    const message = this.encodingService.encode(request, peerEncryptKey);
     this.webTorrentService.send(message);
   }
 
@@ -127,11 +127,11 @@ export default class B2BNet {
     const peer = this.peerService.get(address);
     const { publicKey } = peer;
     const responseNonce = this.rpcService.registerCallBack(callback);
-    const rpcPackage = this.packageService.build({
+    const rpcPackage = this.requestBuilder.build({
       call,
       responseNonce,
       args: JSON.stringify(args),
-      type: PacketType.RPCCALL,
+      type: RequestType.RPCCALL,
     });
     this.sendPackage(rpcPackage, publicKey);
   }
@@ -139,18 +139,18 @@ export default class B2BNet {
   send(address: string, message: any) {
     this.peerService.get(address);
 
-    const messagePackage = this.packageService.build({
+    const messagePackage = this.requestBuilder.build({
       message: JSON.stringify(message),
-      type: PacketType.MESSAGE,
+      type: RequestType.MESSAGE,
     });
     this.sendPackage(messagePackage);
     this.emit('sent', address, message);
   }
 
   broadcast(message: any) {
-    const messagePackage = this.packageService.build({
+    const messagePackage = this.requestBuilder.build({
       message: JSON.stringify(message),
-      type: PacketType.MESSAGE,
+      type: RequestType.MESSAGE,
     });
     this.sendPackage(messagePackage);
     this.emit('broadcast', message);
@@ -158,13 +158,13 @@ export default class B2BNet {
 
   destroy(callback?: (err: string | Error) => void): Promise<void> {
     return new Promise((resolve, reject) => {
-      const disconnectPackage = this.packageService.build({
-        type: PacketType.DISCONNECT,
+      const disconnectPackage = this.requestBuilder.build({
+        type: RequestType.DISCONNECT,
       });
       this.sendPackage(disconnectPackage);
       this.webTorrentService.destroy((error: string | Error) => {
         if (error != null) {
-          reject(error)
+          reject(error);
         } else {
           resolve();
         }
@@ -180,9 +180,7 @@ export default class B2BNet {
 
   async addPeer(b2bnet: B2BNet): Promise<boolean> {
     try {
-      return await this.webTorrentService.addPeer(
-        b2bnet.getPublicAddress()
-      );
+      return await this.webTorrentService.addPeer(b2bnet.getPublicAddress());
     } catch (e) {
       return false;
     }

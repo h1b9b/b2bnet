@@ -30,7 +30,7 @@ export default class WalletService {
     this.address = addressService.get(this.publicKey);
     this.identifier = identifier || this.address;
   }
-  
+
   private encodeseed(material: ArrayBuffer | SharedArrayBuffer): string {
     return bs58check.encode(
       Buffer.concat([Buffer.from(SEEDPREFIX, 'hex'), Buffer.from(material)])
