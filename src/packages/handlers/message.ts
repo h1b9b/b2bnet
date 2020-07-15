@@ -1,21 +1,11 @@
 import B2BNet from '../../b2bnet';
 import MessagePackage from '../entities/message';
+import AbstractHandler from './abstract';
 
-function parseMessage(message: string) {
-  try {
-    return JSON.parse(message);
-  } catch (e) {
-    // console.log("Malformed response JSON: " + responsestring);
-    return null;
+export default class MessageHandler extends AbstractHandler<MessagePackage> {
+  public async handle(b2bnet: B2BNet, packet: MessagePackage) {
+    const message = this.parseArguments(packet.message);
+    const from = this.addressService.get(packet.publicKey);
+    b2bnet.emit('message', from, message);
   }
-}
-
-export default function messagePacketHandler(
-  b2bnet: B2BNet,
-  packet: MessagePackage
-) {
-  // log("message", b2bnet.identifier, packet);
-  const message = parseMessage(packet.message);
-  const from = b2bnet.addressService.get(packet.publicKey);
-  b2bnet.emit('message', from, message);
 }

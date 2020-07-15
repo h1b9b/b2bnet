@@ -1,27 +1,33 @@
 import B2BNet from '../../b2bnet';
 import RpcCallPackage from '../entities/rpcCall';
+import AbstractHandler from './abstract';
+import RpcService from '../../services/rpc';
+import PacketType from '../types';
+import PackageService from '../../services/package';
 
-function parseArguments(args: string) {
-  try {
-    return JSON.parse(args);
-  } catch (e) {
-    // console.log("Malformed response JSON: " + responsestring);
-    return null;
+export default class RPCCallHandler extends AbstractHandler<RpcCallPackage> {
+  rpcService: RpcService;
+  packageService: PackageService;
+
+  constructor(rpcService: RpcService, packageService: PackageService) {
+    super();
+    this.rpcService = rpcService;
+    this.packageService = packageService;
   }
-}
 
-export default async function rpcCallHandler(
-  b2bnet: B2BNet,
-  packet: RpcCallPackage
-) {
-  // log("rpc", b2bnet.identifier, packet);
-  const nonce = packet.responseNonce;
-  const call = packet.call;
-  const args = parseArguments(packet.args);
-  const address = b2bnet.addressService.get(packet.publicKey);
-
-  const result = await b2bnet.rpcService.callApi(address, call, args);
-  const responsePackage = b2bnet.rpcService.buildResponsePackage(result, nonce);
-  b2bnet.sendPackage(responsePackage, packet.publicKey);
-  b2bnet.emit('rpc', address, call, args, nonce);
+  public async handle(b2bnet: B2BNet, packet: RpcCallPackage) {
+    const nonce = packet.responseNonce;
+    const call = packet.call;
+    const args = this.parseArguments(packet.args);
+    const address = this.addressService.get(packet.publicKey);
+    
+    const result = await this.rpcService.callApi(address, call, args);
+    const responsePackage = this.packageService.build({
+      result: JSON.stringify(result),
+      responseNonce: nonce,
+      type: PacketType.RPCRESPONSE,
+    });
+    b2bnet.sendPackage(responsePackage, packet.publicKey);
+    b2bnet.emit('rpc', address, call, args, nonce);
+  }
 }

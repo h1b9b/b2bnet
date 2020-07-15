@@ -7,21 +7,25 @@ import PeerService from './peer';
 import WalletService from './wallet';
 import B2BNet from '../b2bnet';
 import PackageHandler from '../packages/handler';
+import RpcService from './rpc';
 
 export default class PackageService {
   private walletService: WalletService;
   private peerService: PeerService;
   private packageFactory: PackageFactory;
+  private packageHandler: PackageHandler;
   private encryptionService: EncryptionService;
 
   constructor(
     walletService: WalletService,
-    peerService: PeerService
+    peerService: PeerService,
+    rpcService: RpcService,
   ) {
     this.peerService = peerService;
     this.walletService = walletService;
     this.encryptionService = new EncryptionService(walletService.keyPairEncrypt);
     this.packageFactory = new PackageFactory();
+    this.packageHandler = new PackageHandler(rpcService, peerService, this);
   }
 
   private encodeAndSignPackage(object: Package): Uint8Array {
@@ -81,6 +85,6 @@ export default class PackageService {
   }
 
   handle(b2bnet: B2BNet, packet: Package) {
-    PackageHandler.exec(b2bnet, packet);
+    this.packageHandler.handle(b2bnet, packet);
   }
 }

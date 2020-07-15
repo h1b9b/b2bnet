@@ -57,7 +57,6 @@ export default class WebTorrentService {
       'wire',
       this.attachExtensions(options.extensions)
     );
-    this.torrent.on('infoHash', () => this.emit('infoHash'));
 
     this.Ready = new Promise(async (resolve, reject) => {
       try {
@@ -71,7 +70,7 @@ export default class WebTorrentService {
 
   private waitForTorrent() {
     return new Promise((resolve, reject) => {
-      this.torrent.on('infoHash', resolve);
+      this.torrent.once('infoHash', resolve);
     });
   }
 
@@ -147,19 +146,28 @@ export default class WebTorrentService {
     this.webtorrent.destroy(callback);
   }
 
-  send(message: Uint8Array) {
-    const { wires } = this.torrent;
-    for (const wire of wires) {
-      const peerExtendedMapping = wire.peerExtendedMapping;
-      if (peerExtendedMapping[EXT]) {
-        wire.extended(EXT, message);
+  send(message: Uint8Array): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const { wires } = this.torrent;
+      for (const wire of wires) {
+        const peerExtendedMapping = wire.peerExtendedMapping;
+        if (peerExtendedMapping[EXT]) {
+          wire.extended(EXT, message);
+          wire.on('finish', () => {
+            resolve(true);
+          });
+        }
       }
-    }
-    return toHex(nacl.hash(message).slice(16));
+    });
   }
 
-  addPeer(peer: string | SimplePeer.Instance): boolean {
-    return this.torrent.addPeer(peer);
+  addPeer(peer: string | SimplePeer.Instance): Promise<boolean> {
+    const wasAdded = this.torrent.addPeer(peer);
+    return new Promise((resolve, reject) => {
+      this.torrent.once('wire', () => {
+        resolve(wasAdded);
+      });
+    });
   }
 
   getAddress(): string {

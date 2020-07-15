@@ -64,11 +64,11 @@ export default class PeerService {
       if (!peer || peer.timedOut(this.timeout) === false) {
         const newPeer = new Peer(publicKey, Date.now(), encryptedKey);
         this.peers[address] = newPeer;
+        this.emit('seen', address)
       } else {
         peer.update(Date.now(), encryptedKey);
+        this.emit('updated', address);
       }
-
-      this.emit('updated', address)
     }
   }
 

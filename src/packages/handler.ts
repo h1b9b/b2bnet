@@ -1,39 +1,41 @@
 import B2BNet from '../b2bnet';
-import messagePacketHandler from './handlers/message';
-import rpcCallHandler from './handlers/rpcCall';
-import rpcResponseHandler from './handlers/rpcResponse';
-import pingHandler from './handlers/ping';
-import disconnectHandler from './handlers/disconnect';
-import MessagePackage from './entities/message';
-import PingPackage from './entities/ping';
-import DisconnectPackage from './entities/disconnect';
-import RpcResponsePackage from './entities/rpcResponse';
-import RpcCallPackage from './entities/rpcCall';
+import Package from './entities/abstract';
+import PacketType from './types';
+import AbstractHandler from './handlers/abstract';
+import MessageHandler from './handlers/message';
+import PingHandler from './handlers/ping';
+import DisconectHandler from './handlers/disconnect';
+import PeerService from '../services/peer';
+import RpcService from '../services/rpc';
+import RPCCallHandler from './handlers/rpcCall';
+import RPCResponseHandler from './handlers/rpcResponse';
+import PackageService from '../services/package';
 
 export default class PackageHandler {
-  static exec(
-    b2bnet: B2BNet,
-    packet:
-      | MessagePackage
-      | PingPackage
-      | DisconnectPackage
-      | RpcCallPackage
-      | RpcResponsePackage
-  ) {
-    if (packet instanceof MessagePackage) {
-      return messagePacketHandler(b2bnet, packet);
-    }
-    if (packet instanceof PingPackage) {
-      return pingHandler(b2bnet, packet);
-    }
-    if (packet instanceof DisconnectPackage) {
-      return disconnectHandler(b2bnet, packet);
-    }
-    if (packet instanceof RpcCallPackage) {
-      return rpcCallHandler(b2bnet, packet);
-    }
-    if (packet instanceof RpcResponsePackage) {
-      return rpcResponseHandler(b2bnet, packet);
+  rpcService: RpcService;
+  peerService: PeerService;
+  packageService: PackageService;
+  handlers: { [key: string]: AbstractHandler<Package>} = {};
+
+  constructor(rpcService: RpcService, peerService: PeerService, packageService: PackageService) {
+    this.rpcService = rpcService;
+    this.peerService = peerService;
+    this.packageService = packageService;
+    this.registerHandlers();
+  }
+
+  private registerHandlers() {
+    this.handlers[PacketType.PING] = new PingHandler();
+    this.handlers[PacketType.DISCONNECT] = new DisconectHandler(this.peerService);
+    this.handlers[PacketType.MESSAGE] = new MessageHandler();
+    this.handlers[PacketType.RPCCALL] = new RPCCallHandler(this.rpcService, this.packageService);
+    this.handlers[PacketType.RPCRESPONSE] = new RPCResponseHandler(this.rpcService);
+  }
+
+  public handle(b2bnet: B2BNet, packet: Package) {
+    const handler = this.handlers[packet.type];
+    if (handler != null) {
+      handler.handle(b2bnet, packet);
     }
   }
 }
