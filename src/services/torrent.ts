@@ -38,6 +38,7 @@ export default class WebTorrentService {
   torrent: TorrentInterface;
   extensions: string[] = [];
   infoHash?: string;
+  public Ready: Promise<any>;
 
   constructor(
     options: WebTorrentOptions = {},
@@ -57,6 +58,21 @@ export default class WebTorrentService {
       this.attachExtensions(options.extensions)
     );
     this.torrent.on('infoHash', () => this.emit('infoHash'));
+
+    this.Ready = new Promise(async (resolve, reject) => {
+      try {
+        await this.waitForTorrent();
+        resolve();
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  private waitForTorrent() {
+    return new Promise((resolve, reject) => {
+      this.torrent.on('infoHash', resolve);
+    });
   }
 
   private initializeTorrent(

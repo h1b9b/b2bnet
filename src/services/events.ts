@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import WalletService from "./wallet";
 
 type Event = {
   host: string,
@@ -12,8 +13,8 @@ export default class EventService {
   events: Event[];
   emmiter: EventEmitter;
 
-  constructor(address: string) {
-    this.host = address;
+  constructor(walletService: WalletService) {
+    this.host = walletService.address;
     this.events = [];
     this.emmiter = new EventEmitter();
   }

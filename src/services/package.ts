@@ -9,10 +9,10 @@ import B2BNet from '../b2bnet';
 import PackageHandler from '../packages/handler';
 
 export default class PackageService {
-  walletService: WalletService;
-  peerService: PeerService;
-  packageFactory: PackageFactory;
-  encryptionService: EncryptionService;
+  private walletService: WalletService;
+  private peerService: PeerService;
+  private packageFactory: PackageFactory;
+  private encryptionService: EncryptionService;
 
   constructor(
     walletService: WalletService,

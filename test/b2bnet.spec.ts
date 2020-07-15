@@ -4,34 +4,20 @@ describe('B2BNet', () => {
   describe('Instantiation', () => {
     let b2bnet: B2BNet;
 
-    beforeAll(() => {
+    beforeAll(async () => {
       b2bnet = new B2BNet(null, {
         seed: 'BohNtZ24TrgMwZTLx9VDKtcZARNVuCt5tnecAAxYtTBC8pC61uGN',
       });
+      await b2bnet.Ready;
     });
 
     afterAll(() => {
       b2bnet.close();
     });
 
-    it('should set server identifier', () => {
-      expect(b2bnet.walletService.identifier).toBe('bYSkTy24xXJj6dWe79ZAQXKJZrn2n983SQ');
-    });
-
-    it('should set server public key', () => {
-      expect(b2bnet.walletService.publicKey).toBe(
-        'CXENBY9X3x5TN1yjRyu1U1WkGuujuVBNiqxA16oAYbFo'
-      );
-    });
-
-    it('should be able to get server address from public key', () => {
-      expect(b2bnet.walletService.identifier).toBe(
-        b2bnet.addressService.get('CXENBY9X3x5TN1yjRyu1U1WkGuujuVBNiqxA16oAYbFo')
-      );
-    });
-
-    it('should be able to get server address from public key array', () => {
-      expect(b2bnet.walletService.identifier).toBe(b2bnet.addressService.get(b2bnet.walletService.keyPair.publicKey));
+    it('should init b2bnet server', () => {
+      expect(b2bnet.identifier).toBe('bYSkTy24xXJj6dWe79ZAQXKJZrn2n983SQ');
+      expect(b2bnet.address).toBe(b2bnet.identifier);
     });
   });
 
@@ -39,14 +25,14 @@ describe('B2BNet', () => {
     let b2bnetServer: B2BNet;
     let b2bnetClient: B2BNet;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       b2bnetServer = new B2BNet();
+      await b2bnetServer.Ready;
       b2bnetClient = new B2BNet(b2bnetServer.address);
+      await b2bnetClient.Ready;
 
       // connect the two clients together
-      b2bnetServer.eventService.on('webtorrent', 'infoHash', () => {
-        b2bnetServer.webTorrentService.addPeer(b2bnetClient.getPublicAddress());
-      });
+      b2bnetServer.webTorrentService.addPeer(b2bnetClient.getPublicAddress());
     });
 
     afterEach(() => {
@@ -97,31 +83,23 @@ describe('B2BNet', () => {
     let b2bnetClient2: B2BNet;
     const msg = { Hello: 'World' };
 
-    beforeEach((done) => {
+    beforeEach(async () => {
       b2bnetServer = new B2BNet(null);
+      await b2bnetServer.Ready;
       b2bnetClient1 = new B2BNet(b2bnetServer.address);
+      await b2bnetClient1.Ready;
       b2bnetClient2 = new B2BNet(b2bnetServer.address);
+      await b2bnetClient2.Ready;
 
-      b2bnetClient2.on('server', () => {
-        done();
-      });
-
-      // connect the two clients together
-      b2bnetServer.webTorrentService.on('infoHash', () => {
-        b2bnetServer.webTorrentService.addPeer(
-          b2bnetClient1.getPublicAddress()
-        );
-        b2bnetServer.webTorrentService.addPeer(
-          b2bnetClient2.getPublicAddress()
-        );
-        b2bnetServer.eventService.emmiter.once('seen', () => {
-          setTimeout(() => {
-            b2bnetClient1.webTorrentService.addPeer(
-              b2bnetClient2.getPublicAddress()
-            );
-          }, 100);
-        });
-      });
+      b2bnetServer.webTorrentService.addPeer(
+        b2bnetClient1.getPublicAddress()
+      );
+      b2bnetServer.webTorrentService.addPeer(
+        b2bnetClient2.getPublicAddress()
+      );
+      b2bnetClient1.webTorrentService.addPeer(
+        b2bnetClient2.getPublicAddress()
+      );
     });
 
     afterEach(() => {

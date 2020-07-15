@@ -23,14 +23,15 @@ export default class B2BNet {
   address: string;
   identifier: string;
   serveraddress?: string = undefined;
+  public Ready: Promise<any>;
 
-  walletService: WalletService;
-  packageService: PackageService;
-  webTorrentService: WebTorrentService;
-  rpcService: RpcService;
-  peerService: PeerService;
-  addressService: AddressService;
-  eventService: EventService;
+  private walletService: WalletService;
+  private packageService: PackageService;
+  private webTorrentService: WebTorrentService;
+  private rpcService: RpcService;
+  private peerService: PeerService;
+  private addressService: AddressService;
+  private eventService: EventService;
 
   constructor(
     identifier: any = null,
@@ -38,7 +39,7 @@ export default class B2BNet {
   ) {
     this.addressService = new AddressService();
     this.walletService = new WalletService(identifier, seed, keyPair);
-    this.eventService = new EventService(this.walletService.address);
+    this.eventService = new EventService(this.walletService);
     this.peerService = new PeerService(
       this.eventService,
       this.walletService,
@@ -73,6 +74,8 @@ export default class B2BNet {
 
     this.eventService.on('webtorrent', 'connections', peersCount => this.emit('connections', peersCount))
     this.eventService.on('peer', 'updated', this.onPeerUpdate);
+
+    this.Ready = this.webTorrentService.Ready;
   }
 
   private isServer(address: string): boolean {
