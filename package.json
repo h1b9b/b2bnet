@@ -34,7 +34,7 @@
   "devDependencies": {
     "@rollup/plugin-commonjs": "^14.0.0",
     "@rollup/plugin-json": "^4.1.0",
-    "@rollup/plugin-node-resolve": "^8.1.0",
+    "@rollup/plugin-node-resolve": "^8.4.0",
     "@types/bittorrent-protocol": "^3.1.0",
     "@types/jest": "^26.0.4",
     "husky": "^4.2.5",
@@ -45,7 +45,7 @@
     "rollup": "^2.21.0",
     "rollup-plugin-terser": "^6.1.0",
     "rollup-plugin-typescript2": "^0.27.1",
-    "ts-jest": "^26.1.1",
+    "ts-jest": "^26.1.2",
     "tslib": "^2.0.0",
     "tslint": "^6.1.2",
     "tslint-config-prettier": "^1.18.0",
@@ -77,6 +77,7 @@
   },
   "lint-staged": {
     "*.{ts,js,md}": "prettier --write",
-    "*.ts": "tslint --fix"
+    "*.ts": "tslint --fix",
+    "*.{js,css,md}": "prettier --write"
   }
 }
