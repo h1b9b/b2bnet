@@ -1,6 +1,6 @@
 import nacl from 'tweetnacl';
 
-export default abstract class Package {
+export default abstract class Request {
   type: string;
   identifier: string;
   publicKey: string;

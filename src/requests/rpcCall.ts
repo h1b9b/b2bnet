@@ -1,7 +1,7 @@
-import Package from './abstract';
-import PacketType from '../types';
+import RequestType from './types';
+import Request from './request';
 
-export default class RpcCallPackage extends Package {
+export default class RPCCallRequest extends Request {
   call: string;
   args: string;
   responseNonce: Uint8Array;
@@ -14,14 +14,14 @@ export default class RpcCallPackage extends Package {
     args: string,
     responseNonce: Uint8Array
   ) {
-    super(PacketType.RPCCALL, identifier, publicKey, encryptedKey);
+    super(RequestType.RPCCALL, identifier, publicKey, encryptedKey);
     this.call = call;
     this.args = args;
     this.responseNonce = responseNonce;
   }
 
-  static fromPacket(packet: any): RpcCallPackage {
-    return new RpcCallPackage(
+  static fromPacket(packet: any): RPCCallRequest {
+    return new RPCCallRequest(
       packet.i.toString(),
       packet.pk.toString(),
       packet.ek.toString(),

@@ -2,7 +2,7 @@ import nacl, { BoxKeyPair } from 'tweetnacl';
 import bencode from 'bencode';
 import bs58 from 'bs58';
 
-export default class EncryptPackage {
+export default class EncryptionService {
   keyPairEncrypt: BoxKeyPair;
 
   constructor(keyPairEncrypt: BoxKeyPair) {

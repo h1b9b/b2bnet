@@ -2,36 +2,14 @@ import B2BNet from '../src/b2bnet';
 
 describe('B2BNet', () => {
   describe('Instantiation', () => {
-    let b2bnet: B2BNet;
-
-    beforeAll(() => {
-      b2bnet = new B2BNet(null, {
+    it('should init b2bnet server', async () => {
+      const b2bnet = new B2BNet(null, {
         seed: 'BohNtZ24TrgMwZTLx9VDKtcZARNVuCt5tnecAAxYtTBC8pC61uGN',
       });
-    });
-
-    afterAll(() => {
-      b2bnet.close();
-    });
-
-    it('should set server identifier', () => {
+      await b2bnet.Ready;
       expect(b2bnet.identifier).toBe('bYSkTy24xXJj6dWe79ZAQXKJZrn2n983SQ');
-    });
-
-    it('should set server public key', () => {
-      expect(b2bnet.publicKey).toBe(
-        'CXENBY9X3x5TN1yjRyu1U1WkGuujuVBNiqxA16oAYbFo'
-      );
-    });
-
-    it('should be able to get server address from public key', () => {
-      expect(b2bnet.identifier).toBe(
-        b2bnet.address('CXENBY9X3x5TN1yjRyu1U1WkGuujuVBNiqxA16oAYbFo')
-      );
-    });
-
-    it('should be able to get server address from public key array', () => {
-      expect(b2bnet.identifier).toBe(b2bnet.address(b2bnet.keyPair.publicKey));
+      expect(b2bnet.address).toBe(b2bnet.identifier);
+      b2bnet.close();
     });
   });
 
@@ -39,129 +17,96 @@ describe('B2BNet', () => {
     let b2bnetServer: B2BNet;
     let b2bnetClient: B2BNet;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       b2bnetServer = new B2BNet();
-      b2bnetClient = new B2BNet(b2bnetServer.address());
+      b2bnetClient = new B2BNet(b2bnetServer.address);
 
-      // connect the two clients together
-      b2bnetServer.webTorrentService.on('infoHash', () => {
-        b2bnetServer.webTorrentService.addPeer(b2bnetClient.getPublicAddress());
-      });
+      await b2bnetServer.Ready;
+      await b2bnetClient.Ready;
     });
 
-    afterEach(() => {
-      b2bnetClient.close();
-      b2bnetServer.close();
+    afterEach(async () => {
+      await b2bnetClient.close();
+      await b2bnetServer.close();
     });
 
-    it('server see the wire', (done) => {
-      function wireseenCount(count: number) {
-        try {
-          expect(count).toBe(1);
-          done();
-        } catch (error) {
-          done(error);
-        }
-      }
-      b2bnetServer.on('wireseen', wireseenCount);
-    });
-
-    it('client see the wire', (done) => {
-      function wireseenCount(count: number) {
-        try {
-          expect(count).toBe(1);
-          done();
-        } catch (error) {
-          done(error);
-        }
-      }
-      b2bnetClient.on('wireseen', wireseenCount);
-    });
-
-    it('client see remote server address as peer', (done) => {
+    it('client see remote server address as peer', async (done) => {
       function seenAddress(address: string) {
         try {
-          expect(address).toBe(b2bnetServer.address());
+          expect(address).toBe(b2bnetServer.address);
           done();
         } catch (error) {
           done(error);
         }
       }
       b2bnetClient.on('seen', seenAddress);
+      // connect the two clients together
+      await b2bnetServer.addPeer(b2bnetClient);
     });
 
-    it('server see remote client address as peer', (done) => {
-      function seenAddress(address: string) {
-        try {
-          expect(address).toBe(b2bnetClient.address());
-          done();
-        } catch (error) {
-          done(error);
-        }
-      }
-      b2bnetServer.on('seen', seenAddress);
-    });
-
-    it('client see the server correct address', (done) => {
+    it('client see the server correct address', async (done) => {
       function serverSeenAddress(address: string) {
         try {
-          expect(address).toBe(b2bnetServer.address());
+          expect(address).toBe(b2bnetServer.address);
           done();
         } catch (error) {
           done(error);
         }
       }
       b2bnetClient.on('server', serverSeenAddress);
+
+      await b2bnetServer.addPeer(b2bnetClient);
+    });
+
+    it('server see remote client address as peer', async (done) => {
+      function seenAddress(address: string) {
+        try {
+          expect(address).toBe(b2bnetClient.address);
+          done();
+        } catch (error) {
+          done(error);
+        }
+      }
+      b2bnetServer.on('seen', seenAddress);
+
+      await b2bnetServer.addPeer(b2bnetClient);
     });
   });
 
   describe('RPC and message passing', () => {
-    let b2bnetServer: B2BNet;
-    let b2bnetClient1: B2BNet;
-    let b2bnetClient2: B2BNet;
     const msg = { Hello: 'World' };
-
-    beforeEach((done) => {
-      b2bnetServer = new B2BNet(null);
-      b2bnetClient1 = new B2BNet(b2bnetServer.address());
-      b2bnetClient2 = new B2BNet(b2bnetServer.address());
-
-      b2bnetClient2.on('server', () => {
-        done();
-      });
-
-      // connect the two clients together
-      b2bnetServer.webTorrentService.on('infoHash', () => {
-        b2bnetServer.webTorrentService.addPeer(
-          b2bnetClient1.getPublicAddress()
-        );
-        b2bnetServer.webTorrentService.addPeer(
-          b2bnetClient2.getPublicAddress()
-        );
-        b2bnetServer.once('seen', () => {
-          setTimeout(() => {
-            b2bnetClient1.webTorrentService.addPeer(
-              b2bnetClient2.getPublicAddress()
-            );
-          }, 100);
-        });
-      });
-    });
-
-    afterEach(() => {
-      b2bnetClient1.close();
-      b2bnetClient2.close();
-      b2bnetServer.close();
-    });
-
     describe('messages', () => {
+      let b2bnetServer: B2BNet;
+      let b2bnetClient1: B2BNet;
+      let b2bnetClient2: B2BNet;
+
+      beforeEach(async () => {
+        b2bnetServer = new B2BNet();
+        b2bnetClient1 = new B2BNet(b2bnetServer.address);
+        b2bnetClient2 = new B2BNet(b2bnetServer.address);
+
+        await b2bnetServer.Ready;
+        await b2bnetClient1.Ready;
+        await b2bnetClient2.Ready;
+
+        await b2bnetServer.addPeer(b2bnetClient1);
+        await b2bnetServer.addPeer(b2bnetClient2);
+        await b2bnetClient1.addPeer(b2bnetClient2);
+      });
+
+      afterEach(async () => {
+        await b2bnetClient1.close();
+        await b2bnetClient2.close();
+        await b2bnetServer.close();
+      });
+
       it('server broadcast to all clients', (done) => {
         b2bnetServer.broadcast(msg);
 
         let expectsCount = 2;
         function expectedMessage(from: string, message: any) {
           try {
-            expect(from).toBe(b2bnetServer.address());
+            expect(from).toBe(b2bnetServer.address);
             expect(message).toEqual(msg);
             expectsCount--;
 
@@ -178,11 +123,11 @@ describe('B2BNet', () => {
       });
 
       it('server should send message to only client 1', (done) => {
-        b2bnetServer.send(b2bnetClient1.address(), msg);
+        b2bnetServer.send(b2bnetClient1.address, msg);
 
         function expectedMessage(receiver: string, message: any) {
           try {
-            expect(receiver).toBe(b2bnetServer.address());
+            expect(receiver).toBe(b2bnetServer.address);
             expect(message).toEqual(msg);
             expect(client2ExpectMessage).toBeCalledTimes(0);
             done();
@@ -198,39 +143,30 @@ describe('B2BNet', () => {
     });
 
     describe('ping', () => {
-      it('client 1 should ping server and get pong', (done) => {
-        async function pingPongApi(address: string, args: object) {
-          return { ...args, pong: true };
-        }
+      let b2bnetClient: B2BNet;
+      let b2bnetServer: B2BNet;
 
-        b2bnetServer.register('ping', pingPongApi);
+      beforeAll(async () => {
+        b2bnetServer = new B2BNet();
+        b2bnetClient = new B2BNet(b2bnetServer.identifier);
 
-        function expectPong(response: any) {
-          try {
-            expect(response.Hello).toBe(msg.Hello);
-            expect(response.pong).toBe(true);
-            done();
-          } catch (error) {
-            done(error);
-          }
-        }
+        await b2bnetServer.Ready;
+        await b2bnetClient.Ready;
 
-        if (b2bnetClient1.serveraddress != null) {
-          b2bnetClient1.rpc(
-            b2bnetClient1.serveraddress,
-            'ping',
-            msg,
-            expectPong
-          );
-        } else {
-          done('No server address');
-        }
+        // await b2bnetServer.addPeer(b2bnetClient);
+        await b2bnetClient.addPeer(b2bnetServer);
       });
 
-      it('client 1 should ping client 2 and get pong', (done) => {
+      afterAll(async () => {
+        await b2bnetClient.close();
+        await b2bnetServer.close();
+      });
+
+      it('should ping on server', (done) => {
         async function pingPongApi(address: string, args: object) {
           return { ...args, pong: true };
         }
+
         b2bnetServer.register('ping', pingPongApi);
 
         function expectPong(response: any) {
@@ -243,16 +179,27 @@ describe('B2BNet', () => {
           }
         }
 
-        if (b2bnetClient1.serveraddress != null) {
-          b2bnetClient1.rpc(
-            b2bnetClient1.serveraddress,
-            'ping',
-            msg,
-            expectPong
-          );
-        } else {
-          done('No server address');
+        b2bnetClient.rpc(b2bnetServer.address, 'ping', msg, expectPong);
+      });
+
+      it('should ping on client', (done) => {
+        async function pingPongApi(address: string, args: object) {
+          return { ...args, pong: true };
         }
+
+        b2bnetClient.register('ping', pingPongApi);
+
+        function expectPong(response: any) {
+          try {
+            expect(response.Hello).toBe(msg.Hello);
+            expect(response.pong).toBe(true);
+            done();
+          } catch (error) {
+            done(error);
+          }
+        }
+
+        b2bnetServer.rpc(b2bnetClient.address, 'ping', msg, expectPong);
       });
     });
   });

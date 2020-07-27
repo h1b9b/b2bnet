@@ -1,178 +1,122 @@
-import bs58 from 'bs58';
-import bs58check from 'bs58check-ts';
-import nacl from 'tweetnacl';
-import ripemd160 from 'ripemd160';
+import { SignKeyPair } from 'tweetnacl';
 import debug from 'debug';
-import EventEmitter from 'events';
-import buildExtention from './webtorrent/extension';
-import MessageService from './message/service';
-import Package from './packages/entities/abstract';
-import PackageHandler from './packages/handler';
-import PackageService from './packages/service';
-import PacketType from './packages/types';
-import PeerService from './peer/service';
-import RpcService, { RpcApiFunction } from './rpc/service';
-import WebTorrentService, { WebTorrentOptions } from './webtorrent/service';
+import EncodingService from './services/encoding';
+import RequestType from './requests/types';
+import PeerService from './services/peer';
+import RpcService, { RpcApiFunction } from './services/rpc';
+import WebTorrentService, { WebTorrentOptions } from './services/torrent';
+import AddressService from './services/address';
+import WalletService from './services/wallet';
+import EventService from './services/events';
+import { WireExtensionBuilder } from './services/extensionBuilder';
+import Router from './services/router';
+import RequestBuilder from './services/requestBuilder';
+import Request from './requests/request';
 
-const PEERTIMEOUT = 5 * 60 * 1000;
-const SEEDPREFIX = '490a';
-const ADDRESSPREFIX = '55';
 const log = debug('B2BNet');
 
 interface B2BNetOptionsInterface extends WebTorrentOptions {
   seed?: string;
   timeout?: number;
-  heartbeat?: number;
-  keyPair?: nacl.SignKeyPair;
+  keyPair?: SignKeyPair;
 }
 
-export default class B2BNet extends EventEmitter {
-  keyPair: nacl.SignKeyPair;
-  publicKey: string;
-  encryptedKey: string;
+export default class B2BNet {
+  address: string;
   identifier: string;
-  timeout: number;
   serveraddress?: string = undefined;
-  heartbeattimer?: any = null;
-  packageService: PackageService;
-  packageHandler: PackageHandler;
-  webTorrentService: WebTorrentService;
-  rpcService: RpcService;
-  peerService: PeerService;
-  messageService: MessageService;
+  public Ready: Promise<any>;
+
+  private walletService: WalletService;
+  private encodingService: EncodingService;
+  private webTorrentService: WebTorrentService;
+  private rpcService: RpcService;
+  private peerService: PeerService;
+  private addressService: AddressService;
+  private eventService: EventService;
+  private router: Router;
+  private requestBuilder: RequestBuilder;
 
   constructor(
     identifier: any = null,
-    {
-      seed,
-      timeout,
-      heartbeat,
-      keyPair,
-      ...options
-    }: B2BNetOptionsInterface = {}
+    { seed, timeout, keyPair, ...options }: B2BNetOptionsInterface = {}
   ) {
-    super();
-    seed = seed || this.encodeseed(nacl.randomBytes(32));
-    this.timeout = timeout || PEERTIMEOUT;
+    this.rpcService = new RpcService();
+    this.addressService = new AddressService();
+    this.walletService = new WalletService(identifier, seed, keyPair);
+    this.eventService = new EventService(this.walletService);
+    this.requestBuilder = new RequestBuilder(this.walletService);
+    this.encodingService = new EncodingService(this.walletService);
+    this.peerService = new PeerService(
+      this.eventService,
+      this.walletService,
+      timeout
+    );
+    this.router = new Router(
+      this.rpcService,
+      this.peerService,
+      this.walletService
+    );
 
-    this.keyPair =
-      keyPair ||
-      nacl.sign.keyPair.fromSeed(
-        Uint8Array.from(bs58check.decode(seed)).slice(2)
-      );
-    // ephemeral encryption key only used for this session
-    const keyPairEncrypt = nacl.box.keyPair();
-    this.publicKey = bs58.encode(Buffer.from(this.keyPair.publicKey));
-    this.encryptedKey = bs58.encode(Buffer.from(keyPairEncrypt.publicKey));
-    this.identifier = identifier || this.address();
+    this.address = this.walletService.address;
+    this.identifier = this.walletService.identifier;
 
-    log('address', this.address());
-    log('identifier', this.identifier);
-    log('public key', this.publicKey);
-    log('encryption key', this.encryptedKey);
-
-    if (heartbeat) {
-      this.heartbeattimer = setInterval(this.heartbeat.bind(this), heartbeat);
-    }
+    const wireExtensionBuilder = new WireExtensionBuilder(
+      this.walletService,
+      this.peerService,
+      this.router
+    );
 
     this.webTorrentService = new WebTorrentService(
-      this.identifier,
-      [buildExtention(this)],
-      options
+      { ...options, extensions: [wireExtensionBuilder.get(this)] },
+      this.walletService,
+      this.eventService
     );
-    this.packageHandler = new PackageHandler(this);
-    this.packageService = new PackageService(
-      this.identifier,
-      this.publicKey,
-      this.encryptedKey,
-      this.timeout,
-      keyPairEncrypt,
-      this.keyPair.secretKey
-    );
-    this.rpcService = new RpcService(this.packageService);
-    this.peerService = new PeerService(this.timeout);
-    this.messageService = new MessageService();
 
-    this.peerService.on('seen', (address: string) => {
-      this.ping();
-      this.emit('seen', address);
-      if (address === this.identifier) {
-        this.serveraddress = address;
-        this.emit('server', address);
-      }
-    });
-    this.webTorrentService.on('connections', (peersCount) => {
-      this.emit('connections', peersCount);
-    });
+    this.eventService.on('webtorrent', 'connections', (peersCount) =>
+      this.emit('connections', peersCount)
+    );
+    this.eventService.on('peer', 'seen', this.onPeerSeen);
+
+    this.Ready = this.webTorrentService.Ready;
   }
 
-  private encodeseed(material: ArrayBuffer | SharedArrayBuffer): string {
-    return bs58check.encode(
-      Buffer.concat([Buffer.from(SEEDPREFIX, 'hex'), Buffer.from(material)])
-    );
+  private isServer(address: string): boolean {
+    return address === this.identifier;
   }
 
-  private heartbeat() {
+  private onPeerSeen = (address: string) => {
     this.ping();
-    this.peerService.removeTimeoutPeers();
-  }
+    this.emit('seen', address);
+    // console.log(this.identifier, 'saw', address);
+    if (this.isServer(address)) {
+      this.serveraddress = address;
+      this.emit('server', address);
+    }
+  };
 
   private ping() {
-    const pingPackage = this.packageService.build({ type: PacketType.PING });
+    const pingPackage = this.requestBuilder.build({ type: RequestType.PING });
     this.sendPackage(pingPackage);
   }
 
-  sendPackage(packet: Package, publicKey?: string) {
+  sendPackage(request: Request, publicKey?: string) {
     let peerEncryptKey;
     if (publicKey != null) {
-      const peerAddress = this.address(publicKey);
-      const peer = this.peerService.get(peerAddress);
-      if (peer) {
-        peerEncryptKey = peer.encryptedKey;
-        if (peerEncryptKey == null) {
-          throw new Error(`No encryption key for ${peerAddress}.`);
-        }
-      } else {
-        throw new Error(`${peerAddress} not seen.`);
-      }
+      const peerAddress = this.addressService.get(publicKey);
+      peerEncryptKey = this.peerService.getEncryptedKey(peerAddress);
     }
 
-    const message = this.packageService.encode(packet, peerEncryptKey);
+    const message = this.encodingService.encode(request, peerEncryptKey);
     this.webTorrentService.send(message);
   }
 
-  address(publicKey: string | Uint8Array = this.keyPair.publicKey): string {
-    let arrayKey: Uint8Array;
-
-    if (typeof publicKey === 'string') {
-      arrayKey = bs58.decode(publicKey);
-    } else {
-      arrayKey = publicKey;
-    }
-
-    return bs58check.encode(
-      Buffer.concat([
-        Buffer.from(ADDRESSPREFIX, 'hex'),
-        new ripemd160().update(Buffer.from(nacl.hash(arrayKey))).digest(),
-      ])
-    );
-  }
-
   emit(event: string, ...args: any[]): boolean {
-    log(event, ...args);
-    return super.emit(event, ...args);
+    return this.eventService.emit('b2bnet', event, ...args);
   }
 
-  private isSame(address: string): boolean {
-    return address === this.address();
-  }
-
-  sawPeer(publicKey: string, encryptedKey?: string) {
-    const address = this.address(publicKey);
-
-    if (this.isSame(address) === false) {
-      this.peerService.sawPeer(address, publicKey, encryptedKey);
-    }
+  on(event: string, listener: (...args: any[]) => void) {
+    this.eventService.on('b2bnet', event, listener);
   }
 
   register(name: string, func: RpcApiFunction) {
@@ -181,60 +125,64 @@ export default class B2BNet extends EventEmitter {
 
   rpc(address: string, call: string, args: any, callback?: CallableFunction) {
     const peer = this.peerService.get(address);
-    if (peer) {
-      const { publicKey } = peer;
-      const nonce = this.rpcService.registerCallBack(callback);
-      const rpcPackage = this.rpcService.buildCallPackage(call, nonce, args);
-      this.sendPackage(rpcPackage, publicKey);
-    } else {
-      throw new Error(`${address} not seen - no public key.`);
-    }
+    const { publicKey } = peer;
+    const responseNonce = this.rpcService.registerCallBack(callback);
+    const rpcPackage = this.requestBuilder.build({
+      call,
+      responseNonce,
+      args: JSON.stringify(args),
+      type: RequestType.RPCCALL,
+    });
+    this.sendPackage(rpcPackage, publicKey);
   }
 
   send(address: string, message: any) {
-    const peer = this.peerService.get(address);
-    if (!peer) {
-      throw new Error(`${address} not seen.`);
-    }
+    this.peerService.get(address);
 
-    const messagePackage = this.packageService.build({
+    const messagePackage = this.requestBuilder.build({
       message: JSON.stringify(message),
-      type: PacketType.MESSAGE,
+      type: RequestType.MESSAGE,
     });
     this.sendPackage(messagePackage);
     this.emit('sent', address, message);
   }
 
   broadcast(message: any) {
-    const messagePackage = this.packageService.build({
+    const messagePackage = this.requestBuilder.build({
       message: JSON.stringify(message),
-      type: PacketType.MESSAGE,
+      type: RequestType.MESSAGE,
     });
     this.sendPackage(messagePackage);
     this.emit('broadcast', message);
   }
 
-  handle(packet: Package) {
-    this.packageHandler.exec(packet);
-  }
-
-  destroy(callback?: (err: string | Error) => void) {
-    clearInterval(this.heartbeattimer);
-    const disconnectPackage = this.packageService.build({
-      type: PacketType.DISCONNECT,
+  destroy(callback?: (err: string | Error) => void): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const disconnectPackage = this.requestBuilder.build({
+        type: RequestType.DISCONNECT,
+      });
+      this.sendPackage(disconnectPackage);
+      this.webTorrentService.destroy((error: string | Error) => {
+        if (error != null) {
+          reject(error);
+        } else {
+          resolve();
+        }
+      });
     });
-    this.sendPackage(disconnectPackage);
-    this.webTorrentService.destroy(callback);
   }
 
   close = this.destroy;
 
-  handshake() {
-    const peersCount = this.webTorrentService.connections();
-    this.emit('wireseen', peersCount);
-  }
-
   getPublicAddress(): string {
     return this.webTorrentService.getAddress();
+  }
+
+  async addPeer(b2bnet: B2BNet): Promise<boolean> {
+    try {
+      return await this.webTorrentService.addPeer(b2bnet.getPublicAddress());
+    } catch (e) {
+      return false;
+    }
   }
 }
