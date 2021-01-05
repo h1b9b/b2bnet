@@ -20,5 +20,5 @@ export default abstract class BaseController<T extends Request> {
     }
   }
 
-  public abstract async call(b2bnet: B2BNet, packet: T): Promise<any>;
+  public abstract call(b2bnet: B2BNet, packet: T): Promise<any>;
 }

@@ -1,5 +1,5 @@
 import bs58 from 'bs58';
-import bs58check from 'bs58check-ts';
+import { bs58safe } from 'bs58check-ts';
 import nacl, { SignKeyPair, BoxKeyPair } from 'tweetnacl';
 import AddressService from './address';
 
@@ -19,7 +19,7 @@ export default class WalletService {
     this.keyPair =
       keyPair ||
       nacl.sign.keyPair.fromSeed(
-        Uint8Array.from(bs58check.decode(seed)).slice(2)
+        Uint8Array.from(bs58safe.decode(seed)).slice(2)
       );
     // ephemeral encryption key only used for this session
     this.keyPairEncrypt = nacl.box.keyPair();
@@ -32,7 +32,7 @@ export default class WalletService {
   }
 
   private encodeseed(material: ArrayBuffer | SharedArrayBuffer): string {
-    return bs58check.encode(
+    return bs58safe.encode(
       Buffer.concat([Buffer.from(SEEDPREFIX, 'hex'), Buffer.from(material)])
     );
   }
