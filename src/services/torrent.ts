@@ -58,7 +58,7 @@ export default class WebTorrentService {
     this.Ready = new Promise(async (resolve, reject) => {
       try {
         await this.waitForTorrent();
-        resolve();
+        resolve(true);
       } catch (e) {
         reject(e);
       }
