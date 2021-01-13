@@ -1,5 +1,5 @@
 import bs58 from 'bs58';
-import { bs58safe } from 'bs58check-ts';
+import bs58safe from 'bs58check-ts';
 import nacl from 'tweetnacl';
 import ripemd160 from 'ripemd160';
 
