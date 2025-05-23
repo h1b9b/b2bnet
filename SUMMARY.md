@@ -1,0 +1,1 @@
+B2BNet is a TypeScript library that enables peer-to-peer (P2P) networking directly between web browsers. It likely leverages technologies like WebRTC and WebTorrent to facilitate this direct browser-to-browser communication.
