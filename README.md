@@ -87,7 +87,7 @@ sequenceDiagram
     deactivate RequestParser
     Router->>PeerService: sawPeer(peerId)
     activate PeerService
-    PeerService-->>Router:
+    PeerService-->>Router: Peer status updated
     deactivate PeerService
     Router->>Controller: process(requestObject, peerId)
     Note over Router,Controller: e.g., MessageController.process()
@@ -106,7 +106,7 @@ sequenceDiagram
     deactivate PeerService
     B2BNet->>RpcService: registerCallback(requestId, callback)
     activate RpcService
-    RpcService-->>B2BNet:
+    RpcService-->>B2BNet: Callback registered
     deactivate RpcService
     B2BNet->>RequestBuilder: createRpcCallRequest(method, params, requestId)
     activate RequestBuilder
@@ -154,9 +154,9 @@ sequenceDiagram
     activate WebTorrentService
     WebTorrentService-->>RpcService: success/failure
     deactivate WebTorrentService
-    RpcService-->>Controller:
+    RpcService-->>Controller: API call processed
     deactivate RpcService
-    Controller-->>Router:
+    Controller-->>Router: RPC response initiated
     deactivate Controller
     deactivate Router
 
@@ -178,10 +178,10 @@ sequenceDiagram
     activate RpcService
     Note over RpcService,UserApp: RpcService invokes original callback
     RpcService->>UserApp: (trigger original callback with data/error)
-    UserApp-->>RpcService:
-    RpcService-->>Controller:
+    UserApp-->>RpcService: (RPC data processed by app)
+    RpcService-->>Controller: Callback executed
     deactivate RpcService
-    Controller-->>Router:
+    Controller-->>Router: RPC response processed
     deactivate Controller
     deactivate Router
 ```
